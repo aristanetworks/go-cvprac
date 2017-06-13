@@ -205,7 +205,8 @@ func TestCvpRac_ClientStatusBadRequest_UnitTest(t *testing.T) {
 	ok(t, err)
 
 	_, err = cvpClient.Post("/StatusBadRequest-test", nil, nil)
-	assert(t, err != nil, "POST returned no error when it should have returned StatusBadRequest(400)")
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusBadRequest(400)")
 	assert(t, err.Error() == "Status: 400", "Got: %s", err)
 }
 
@@ -233,27 +234,33 @@ func TestCvpRac_ClientRetry_UnitTest(t *testing.T) {
 	ok(t, err)
 
 	_, err = cvpClient.Post("/StatusMovedPermanently-test", nil, nil)
-	assert(t, err != nil, "POST returned no error when it should have returned StatusMovedPermanently(301)")
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusMovedPermanently(301)")
 	//assert(t, err.Error() == "Status: 301", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusBadRequest-test", nil, nil)
-	assert(t, err != nil, "POST returned no error when it should have returned StatusBadRequest(400)")
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusBadRequest(400)")
 	assert(t, err.Error() == "Status: 400", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusUnauthorized-test", nil, nil)
-	assert(t, err != nil, "POST returned no error when it should have returned StatusUnauthorized(401)")
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusUnauthorized(401)")
 	assert(t, err.Error() == "Status: 401", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusForbidden-test", nil, nil)
-	assert(t, err != nil, "POST returned no error when it should have returned StatusForbidden(403)")
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusForbidden(403)")
 	assert(t, err.Error() == "Status: 403", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusNotFound-test", nil, nil)
-	assert(t, err != nil, "POST returned no error when it should have returned StatusNotFound(404)")
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusNotFound(404)")
 	assert(t, err.Error() == "Status: 404", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusInternalServerError-test", nil, nil)
-	assert(t, err != nil, "POST returned no error when it should have returned StatusInternalServerError(500).")
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusInternalServerError(500).")
 	assert(t, err.Error() == "Status: 500", "Got: %s", err)
 }
 
@@ -284,11 +291,13 @@ func createServer(t *testing.T) *httptest.Server {
 						_, _ = w.Write([]byte(`{ "message": "Accepted" }`))
 					} else {
 						w.WriteHeader(http.StatusUnauthorized)
-						_, _ = w.Write([]byte(`{ "id": "StatusUnauthorized", "message": "nope. retry" }`))
+						_, _ = w.Write([]byte(
+							`{ "id": "StatusUnauthorized", "message": "nope. retry" }`))
 					}
 				} else if creds["userId"] == "denyAll" {
 					w.WriteHeader(http.StatusUnauthorized)
-					_, _ = w.Write([]byte(`{ "id": "StatusUnauthorized", "message": "nope. retry" }`))
+					_, _ = w.Write([]byte(
+						`{ "id": "StatusUnauthorized", "message": "nope. retry" }`))
 				} else {
 					w.WriteHeader(http.StatusOK)
 					_, _ = w.Write([]byte(`{ "message": "Accepted" }`))
@@ -335,7 +344,8 @@ func createServer(t *testing.T) *httptest.Server {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusInternalServerError)
-				_, _ = w.Write([]byte(`{ "id": "StatusInternalServerError", "message": "server error" }`))
+				_, _ = w.Write([]byte(
+					`{ "id": "StatusInternalServerError", "message": "server error" }`))
 
 			} else {
 				w.WriteHeader(http.StatusOK)

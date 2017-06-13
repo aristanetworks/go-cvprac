@@ -33,27 +33,33 @@ package client
 
 import "fmt"
 
-const INITVAL = -1
+const initVal = -1
 
-type hostIterator struct {
+// HostIterator implements an itorator for a list of hostnames/ips
+type HostIterator struct {
 	current int
 	hosts   []string
 }
 
-func (h *hostIterator) Value() string {
+// Value returns the value for the current entry
+func (h *HostIterator) Value() string {
 	return h.hosts[h.current]
 }
 
-func (h *hostIterator) Next() bool {
+// Next returns true if there is another element
+// to iterate. False if we reach the end of the list
+func (h *HostIterator) Next() bool {
 	h.current++
 	if h.current >= len(h.hosts) {
-		h.current = INITVAL
+		h.current = initVal
 		return false
 	}
 	return true
 }
 
-func (h *hostIterator) Cycle() string {
+// Cycle returns the next host in the list. If we've exceeded the
+// length of the list, then circle back to the first.
+func (h *HostIterator) Cycle() string {
 	h.current++
 	if h.current >= len(h.hosts) {
 		h.current = 0
@@ -62,9 +68,9 @@ func (h *hostIterator) Cycle() string {
 }
 
 // NewHostIterator inits an itorator for host list
-func NewHostIterator(hosts []string) (*hostIterator, error) {
+func NewHostIterator(hosts []string) (*HostIterator, error) {
 	if len(hosts) == 0 {
 		return nil, fmt.Errorf("Can not iterate over empty list.")
 	}
-	return &hostIterator{hosts: hosts, current: INITVAL}, nil
+	return &HostIterator{hosts: hosts, current: initVal}, nil
 }

@@ -88,7 +88,7 @@ func Test_CvpGetAllDevicesValid_UnitTest(t *testing.T) {
 
 func Test_CvpGetDeviceByNameRetError_UnitTest(t *testing.T) {
 	clientErr := errors.New("Client error")
-	expectedErr := errors.New("GetAllDevices: GetInventory: Client error")
+	expectedErr := errors.New("GetDeviceByName: GetInventory: Client error")
 
 	client := NewMockClient("", clientErr)
 	api := NewCvpRestAPI(client)

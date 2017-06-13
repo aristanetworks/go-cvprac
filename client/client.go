@@ -63,7 +63,7 @@ type authInfo struct {
 type CvpClient struct {
 	cvpapi.ClientInterface
 	Hosts    []string
-	HostPool *hostIterator
+	HostPool *HostIterator
 	Port     int
 	Protocol string
 	authInfo *authInfo
@@ -269,7 +269,8 @@ func (c *CvpClient) resetSession() error {
 	}
 	request := c.Client.R()
 
-	auth := "{\"userId\":\"" + c.authInfo.Username + "\", \"password\":\"" + c.authInfo.Password + "\"}"
+	auth := "{\"userId\":\"" + c.authInfo.Username +
+		"\", \"password\":\"" + c.authInfo.Password + "\"}"
 
 	resp, err := request.SetBody(auth).Post("/login/authenticate.do")
 	if err != nil {
@@ -287,7 +288,8 @@ func (c *CvpClient) resetSession() error {
 	return nil
 }
 
-func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values, data interface{}) ([]byte, error) {
+func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
+	data interface{}) ([]byte, error) {
 	var err error
 	var resp *resty.Response
 	var retryCnt int
