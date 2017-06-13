@@ -166,7 +166,7 @@ Any tests written must conform to this standard.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on [GitHub](https://github.com/arista-aristanetworks/go-cvprac). 
+Bug reports and pull requests are welcome on [GitHub](https://github.com/aristanetworks/go-cvprac). 
 Please note that all contributions that modify the library behavior require corresponding test cases. Otherwise the pull request will be rejected.
 
 This project is intended to be a safe, welcoming space for collaboration, and
@@ -176,7 +176,7 @@ Covenant](http://contributor-covenant.org) code of conduct.
 ## Support
 
 For support, please open an
-[issue](https://github.com/arista-aristanetworks/go-cvprac) on GitHub or
+[issue](https://github.com/aristanetworks/go-cvprac) on GitHub or
 contact eosplus@arista.com.  Commercial support agreements are available
 through your Arista account team.
 
