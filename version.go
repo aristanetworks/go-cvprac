@@ -28,8 +28,6 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
+package cvprac
 
-package go-cvprac
-
-// Version provides the version of gopenconfig
-const Version string = "8701a59"
+const Version string = "45833f7"
