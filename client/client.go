@@ -70,6 +70,7 @@ type CvpClient struct {
 	Timeout  time.Duration
 	Client   *resty.Client
 	Headers  map[string]string
+	SessID   string
 	url      string
 	API      *cvpapi.CvpRestAPI
 	Debug    bool
@@ -204,6 +205,11 @@ func NewCvpClient(options ...Option) (*CvpClient, error) {
 	return c, nil
 }
 
+// GetSessionID returns the current Session ID
+func (c *CvpClient) GetSessionID() string {
+	return c.SessID
+}
+
 func (c *CvpClient) initSession(host string) error {
 	var port int
 
@@ -250,7 +256,7 @@ func (c *CvpClient) createSession(allNodes bool) error {
 		host := c.HostPool.Cycle()
 
 		c.initSession(host)
-		if err = c.resetSession(); err != nil {
+		if err = c.login(); err != nil {
 			tmpMsg := fmt.Sprintf("createSession: Host %s Error: %s", host, err.Error())
 			errorMsg = append(errorMsg, tmpMsg)
 		} else {
@@ -261,12 +267,13 @@ func (c *CvpClient) createSession(allNodes bool) error {
 	return fmt.Errorf("%s", strings.Join(errorMsg, "\n"))
 }
 
-func (c *CvpClient) resetSession() error {
+func (c *CvpClient) login() error {
 	var loginResp cvpapi.LoginResp
 
 	if c.Client == nil {
-		return fmt.Errorf("resetSession: No valid session to CVP node")
+		return fmt.Errorf("login: No valid session to CVP node")
 	}
+	c.SessID = ""
 	request := c.Client.R()
 
 	auth := "{\"userId\":\"" + c.authInfo.Username +
@@ -274,16 +281,17 @@ func (c *CvpClient) resetSession() error {
 
 	resp, err := request.SetBody(auth).Post("/login/authenticate.do")
 	if err != nil {
-		return fmt.Errorf("resetSession: %s", err)
+		return fmt.Errorf("login: %s", err)
 	}
 
 	if err = checkResponse(resp); err != nil {
-		return fmt.Errorf("resetSession: %s", err)
+		return fmt.Errorf("login: %s", err)
 	}
 
 	if err = json.Unmarshal(resp.Body(), &loginResp); err != nil {
-		return fmt.Errorf("resetSession: %s", err)
+		return fmt.Errorf("login: %s", err)
 	}
+	c.SessID = loginResp.SessionID
 
 	return nil
 }

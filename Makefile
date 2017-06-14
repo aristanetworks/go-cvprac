@@ -29,6 +29,8 @@ GOLINT := golint
 GO_DEADCODE := deadcode
 GOFILES := find . -name '*.go' ! -path './Godeps/*' ! -path './vendor/*'
 GOFOLDERS := $(GO) list ./... | sed 's:^github.com/aristanetworks/go-cvprac:.:' | grep -vw -e './vendor'
+
+VERSION_FILE = version.go
 GOPKGVERSION := $(shell git describe --tags --always --match "v[0-9]*" --abbrev=7 HEAD)
 ifndef GOPKGVERSION
 $(error unable to determine git version)
@@ -98,9 +100,15 @@ bootstrap:
 			go get $$tool; \
 	done
 
+version: $(VERSION_FILE)
+
+$(VERSION_FILE): $(VERSION_FILE).in .git/HEAD .git/index
+	sed -e 's/@VERSION@/$(GOPKGVERSION)/' $(VERSION_FILE).in >$(VERSION_FILE)-t
+	mv $(VERSION_FILE)-t $(VERSION_FILE)
+
 clean:
-	rm -rf $(COVER_TMPFILE).tmp $(COVER_TMPFILE)
+	rm -rf $(COVER_TMPFILE).tmp $(COVER_TMPFILE) $(VERSION_FILE){,-t}
 	$(GO) clean ./...
 
 .PHONY: all fmtcheck test vet check doc lint deadcode
-.PHONY: clean coverage coverdata
+.PHONY: clean coverage coverdata version
