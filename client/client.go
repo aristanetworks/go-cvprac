@@ -39,14 +39,13 @@ import (
 	"strings"
 	"time"
 
+	cvprac "github.com/aristanetworks/go-cvprac"
 	"github.com/aristanetworks/go-cvprac/api"
 
 	"net/http"
 
 	resty "gopkg.in/resty.v0"
 )
-
-const version string = "1.0"
 
 // NumRetryRequests specifies the number for retries to attempt
 const NumRetryRequests = 3
@@ -183,7 +182,7 @@ func NewCvpClient(options ...Option) (*CvpClient, error) {
 	headers := map[string]string{
 		"Accept":       "application/json",
 		"Content-Type": "application/json",
-		"User-Agent":   "Golang cvprac/" + version,
+		"User-Agent":   "Golang cvprac/" + cvprac.Version,
 	}
 	c := &CvpClient{
 		Headers:  headers,
