@@ -33,8 +33,6 @@ package cvpapi
 
 import "net/url"
 
-const version string = "1.0"
-
 // The ClientInterface is implemented by a client to allow interaction with
 // CVP REST
 type ClientInterface interface {
@@ -50,9 +48,4 @@ type CvpRestAPI struct {
 // NewCvpRestAPI creates a new Rest API
 func NewCvpRestAPI(client ClientInterface) *CvpRestAPI {
 	return &CvpRestAPI{client: client}
-}
-
-// Version returns api version string
-func (c *CvpRestAPI) Version() string {
-	return version
 }
