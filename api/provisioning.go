@@ -131,7 +131,7 @@ type DeviceConfiglets struct {
 type ContainerData struct {
 	Undefined            bool   `json:"undefined"`
 	UserID               string `json:"userId"`
-	DateTimeInLongFormat int    `json:"dateTimeInLongFormat"`
+	DateTimeInLongFormat int64  `json:"dateTimeInLongFormat"`
 	FactoryID            int    `json:"factoryId"`
 	Root                 bool   `json:"root"`
 	Mode                 string `json:"mode"`
@@ -599,7 +599,7 @@ type ImageInfo struct {
 	Name                     string `json:"name"`
 	SwiMaxHwepoch            string `json:"swiMaxHwepoch"`
 	SwiVarient               string `json:"swiVarient"`
-	UploadedDateinLongFormat int    `json:"uploadedDateinLongFormat"`
+	UploadedDateinLongFormat int64  `json:"uploadedDateinLongFormat"`
 	User                     string `json:"user"`
 	Version                  string `json:"version"`
 }
@@ -625,7 +625,7 @@ type ImageBundleInfo struct {
 	Name                     string      `json:"name"`
 	Note                     string      `json:"note"`
 	UploadedBy               string      `json:"uploadedBy,omitempty"`
-	UploadedDateinLongFormat int         `json:"uploadedDateinLongFormat"`
+	UploadedDateinLongFormat int64       `json:"uploadedDateinLongFormat"`
 	User                     string      `json:"user"`
 
 	ErrorResponse
@@ -710,7 +710,7 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 		Name                     string      `json:"name"`
 		Note                     string      `json:"note"`
 		UploadedBy               string      `json:"uploadedBy,omitempty"`
-		UploadedDateinLongFormat int         `json:"uploadedDateinLongFormat"`
+		UploadedDateinLongFormat int64       `json:"uploadedDateinLongFormat"`
 		User                     string      `json:"user"`
 		ErrorResponse
 	}

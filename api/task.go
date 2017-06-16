@@ -49,9 +49,9 @@ type CvpTask struct {
 	WorkOrderID                string          `json:"workOrderId"`
 	WorkOrderState             string          `json:"workOrderState"`
 	CreatedBy                  string          `json:"createdBy"`
-	ExecutedOnInLongFormat     int             `json:"executedOnInLongFormat"`
+	ExecutedOnInLongFormat     int64           `json:"executedOnInLongFormat"`
 	WorkOrderDetails           WorkOrderDetail `json:"workOrderDetails"`
-	CreatedOnInLongFormat      int             `json:"createdOnInLongFormat"`
+	CreatedOnInLongFormat      int64           `json:"createdOnInLongFormat"`
 	Data                       WorkData        `json:"data"`
 	Description                string          `json:"description"`
 	Note                       string          `json:"note"`
@@ -93,7 +93,7 @@ type CvpTaskList struct {
 // LogData log data associated with a task
 type LogData struct {
 	ClassID              int    `json:"classId"`
-	DateTimeInLongFormat int    `json:"dateTimeInLongFormat"`
+	DateTimeInLongFormat int64  `json:"dateTimeInLongFormat"`
 	LogDetails           string `json:"logDetails"`
 	WorkOrderID          string `json:"workOrderId"`
 	FactoryID            int    `json:"factoryId"`

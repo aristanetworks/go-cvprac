@@ -41,7 +41,7 @@ import (
 // Configlet represents a Configlet
 type Configlet struct {
 	IsDefault            string `json:"isDefault"`
-	DateTimeInLongFormat int    `json:"dateTimeInLongFormat"`
+	DateTimeInLongFormat int64  `json:"dateTimeInLongFormat"`
 	ContainerCount       int    `json:"containerCount"`
 	NetElementCount      int    `json:"netElementCount"`
 	IsAutoBuilder        string `json:"isAutoBuilder"`
@@ -71,8 +71,8 @@ type ConfigletHistoryEntry struct {
 	NewConfig                   string `json:"newConfig"`
 	OldDate                     string `json:"oldDate"`
 	NewDate                     string `json:"newDate"`
-	OldDateTimeInLongFormat     int    `json:"oldDateTimeInLongFormat"`
-	UpdatedDateTimeInLongFormat int    `json:"updatedDateTimeInLongFormat"`
+	OldDateTimeInLongFormat     int64  `json:"oldDateTimeInLongFormat"`
+	UpdatedDateTimeInLongFormat int64  `json:"updatedDateTimeInLongFormat"`
 	FactoryID                   int    `json:"factoryId"`
 	Key                         string `json:"key"`
 	ID                          int    `json:"id"`
