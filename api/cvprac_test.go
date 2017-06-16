@@ -144,7 +144,7 @@ func TestCvpRac_Add_Update_Delete_Configlet_SystemTest(t *testing.T) {
 
 	configlet, err := api.GetConfigletByName(name)
 	ok(t, err)
-	if configlet != nil && configlet.Name != "" {
+	if configlet != nil {
 		t.Logf("Configlet \"%s\" Exists. Deleting.\n", configlet.Name)
 		err = api.DeleteConfiglet(name, configlet.Key)
 		ok(t, err)
@@ -189,10 +189,7 @@ func TestCvpRac_Add_Update_Delete_Configlet_SystemTest(t *testing.T) {
 	// Verify configlet was deleted
 	configlet, err = api.GetConfigletByName(name)
 	ok(t, err)
-	assert(t, configlet != nil, "Nil Configlet returned for \"%s\"", name)
-	assert(t, configlet.Name == "",
-		"Configlet data still valid after delete for \"%s\". Configlet: %v",
-		name, configlet)
+	assert(t, configlet == nil, "Expected: nil, Got: \"%v\"", configlet)
 }
 
 func TestCvpRac_ExecuteTask_SystemTest(t *testing.T) {
@@ -271,7 +268,7 @@ alias srie show running-config interface ethernet 1`
 
 	configlet, err := api.GetConfigletByName(name)
 	ok(t, err)
-	if configlet != nil && configlet.Name != "" {
+	if configlet != nil {
 		t.Logf("Configlet \"%s\" Exists. Deleting.\n", configlet.Name)
 		err = api.DeleteConfiglet(name, configlet.Key)
 		ok(t, err)
@@ -343,8 +340,7 @@ alias srie show running-config interface ethernet 1`
 
 	configlet, err = api.GetConfigletByName(name)
 	ok(t, err)
-	assert(t, configlet.Name == "", "Expected: \"\", Got: \"%s\"", configlet.Name)
-
+	assert(t, configlet == nil, "Expected: nil, Got: %v", configlet)
 }
 
 func TestCvpRac_CheckCompliance_SystemTest(t *testing.T) {

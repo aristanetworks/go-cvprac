@@ -50,7 +50,7 @@ func NewRealClient(host string, proto string, port int) *RealClient {
 	headers := map[string]string{
 		"Accept":       "application/json",
 		"Content-Type": "application/json",
-		"User-Agent":   "Golang cvprac/" + version,
+		"User-Agent":   "Golang cvpractest",
 	}
 	c := &RealClient{
 		Headers: headers,
@@ -60,6 +60,7 @@ func NewRealClient(host string, proto string, port int) *RealClient {
 	c.Client = resty.New()
 	c.Client.SetHeaders(headers)
 	c.Client.SetHostURL(c.URL)
+	c.Client.SetTimeout(45 * time.Second)
 
 	if proto == "https" {
 		c.Client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})

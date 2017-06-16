@@ -164,7 +164,8 @@ func TestMain(m *testing.M) {
 	api = NewCvpRestAPI(testClient)
 
 	if _, err := api.Login(node.getUsername(), node.getPassword()); err != nil {
-		log.Fatalf("Login Failure: %s", err)
+		log.Printf("Login Failure: %s", err)
+		os.Exit(m.Run())
 	}
 
 	// verify we have at least one device in inventory

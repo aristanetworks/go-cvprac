@@ -111,7 +111,7 @@ func (c CvpRestAPI) GetConfigletByName(name string) (*Configlet, error) {
 	if err := info.Error(); err != nil {
 		// Entity does not exist
 		if info.ErrorCode == "132801" {
-			return &info, nil
+			return nil, nil
 		}
 		return nil, fmt.Errorf("GetConfigletByName: %s", err)
 	}
