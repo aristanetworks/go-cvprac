@@ -46,7 +46,7 @@ type NetElement struct {
 	InternalVersion      string       `json:"internalVersion"`
 	SystemMacAddress     string       `json:"systemMacAddress"`
 	MemTotal             int          `json:"memTotal"`
-	BootupTimeStamp      float32      `json:"bootupTimeStamp"`
+	BootupTimeStamp      float64      `json:"bootupTimeStamp"`
 	MemFree              int          `json:"memFree"`
 	Architecture         string       `json:"architecture"`
 	InternalBuildID      string       `json:"internalBuildId"`
@@ -106,7 +106,7 @@ type TempAction struct {
 	IgnoreNodeName                  string   `json:"ignoreNodeName"`
 	ImageBundleID                   string   `json:"imageBundleId"`
 	Mode                            string   `json:"mode"`
-	Timestamp                       int      `json:"timestamp"`
+	Timestamp                       int64    `json:"timestamp"`
 	ConfigletBuilderList            []string `json:"configletBuilderList"`
 	ConfigletBuilderNamesList       []string `json:"configletBuilderNamesList"`
 	IgnoreConfigletBuilderList      []string `json:"ignoreConfigletBuilderList"`

@@ -161,7 +161,7 @@ type SearchTopologyResp struct {
 // ComplianceResp represents a response from a Compliance check
 type ComplianceResp struct {
 	Architecture         string    `json:"architecture"`
-	BootupTimeStamp      float32   `json:"bootupTimeStamp"`
+	BootupTimeStamp      float64   `json:"bootupTimeStamp"`
 	ComplianceCode       string    `json:"complianceCode"`
 	ComplianceIndication string    `json:"complianceIndication"`
 	DeviceStatus         string    `json:"deviceStatus"`
