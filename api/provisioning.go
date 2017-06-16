@@ -174,7 +174,7 @@ type ComplianceResp struct {
 	IsDANZEnabled        string    `json:"isDANZEnabled"`
 	IsMLAGEnabled        string    `json:"isMLAGEnabled"`
 	Key                  string    `json:"key"`
-	LastSyncUp           int       `json:"lastSyncUp"`
+	LastSyncUp           int64     `json:"lastSyncUp"`
 	MemFree              int       `json:"memFree"`
 	MemTotal             int       `json:"memTotal"`
 	ModelName            string    `json:"modelName"`

@@ -63,7 +63,7 @@ type NetElement struct {
 	IsMLAGEnabled        string       `json:"isMLAGEnabled"`
 	ComplianceIndication string       `json:"complianceIndication"`
 	ComplianceCode       string       `json:"complianceCode"`
-	LastSyncUp           int          `json:"lastSyncUp"`
+	LastSyncUp           int64        `json:"lastSyncUp"`
 	UnAuthorized         bool         `json:"unAuthorized"`
 	DeviceInfo           string       `json:"deviceInfo"`
 	DeviceStatus         string       `json:"deviceStatus"`
