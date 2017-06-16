@@ -38,6 +38,13 @@ import (
 	"strconv"
 )
 
+type ConfigletList struct {
+	Total int         `json:"total"`
+	Data  []Configlet `json:"data"`
+
+	ErrorResponse
+}
+
 // Configlet represents a Configlet
 type Configlet struct {
 	IsDefault            string `json:"isDefault"`
@@ -228,4 +235,37 @@ func (c CvpRestAPI) UpdateConfiglet(config string, name string, key string) erro
 	}
 
 	return nil
+}
+
+// SearchConfigletsWithRange search function for configlets.
+func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int, end int) (*ConfigletList, error) {
+	var info ConfigletList
+
+	//queryparam := url.Values{"name": {key},}
+
+	query := &url.Values{
+		"queryparam": {searchStr},
+		"startIndex": {strconv.Itoa(start)},
+		"endIndex":   {strconv.Itoa(end)},
+	}
+
+	resp, err := c.client.Get("/configlet/searchConfiglets.do", query)
+	if err != nil {
+		return nil, fmt.Errorf("SearchConfiglets: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return nil, fmt.Errorf("SearchConfiglets: %s", err)
+	}
+
+	if err := info.Error(); err != nil {
+		return nil, fmt.Errorf("SearchConfiglets: %s", err)
+	}
+
+	return &info, nil
+}
+
+// SearchConfiglets search function for configlets.
+func (c CvpRestAPI) SearchConfiglets(searchStr string) (*ConfigletList, error) {
+	return c.SearchConfigletsWithRange(searchStr, 0, 0)
 }

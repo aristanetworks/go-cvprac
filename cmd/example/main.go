@@ -54,6 +54,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("ERROR: %s", err)
 	}
-
 	fmt.Printf("Data: %v\n", data)
+
+	configletList, err := cvpClient.API.SearchConfiglets("ConfigletName")
+	if err != nil {
+		log.Fatalf("ERROR: %s", err)
+	}
+	fmt.Printf("Configlets: %v\n", configletList)
+
 }
