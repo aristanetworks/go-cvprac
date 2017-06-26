@@ -7,6 +7,11 @@ pipeline {
     
     agent{ label 'exec'}
     
+    env.REPO      = 'aristanetworks/go-cvprac'
+    env.BUILD_DIR = '__build'
+    env.GOPATH    = "${WORKSPACE}/${BUILD_DIR}"
+    env.SRC_PATH  = "${env.GOPATH}/src/github.com/${REPO}"
+
     options {
         buildDiscarder(
             // Only keep the 10 most recent builds
@@ -14,10 +19,6 @@ pipeline {
     }
 
     environment {
-        REPO      = 'aristanetworks/go-cvprac'
-        BUILD_DIR = '__build'
-        GOPATH    = '${WORKSPACE}/${BUILD_DIR}'
-        SRC_PATH  = '${GOPATH}/src/github.com/${REPO}'
         projectName = 'GoCvpRac'
         //emailTo = 'eosplus-dev@arista.com'
         emailTo = 'cwomble@arista.com'
