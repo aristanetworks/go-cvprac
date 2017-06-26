@@ -14,15 +14,16 @@ pipeline {
     }
 
     environment {
-        // Install the desired Go version
-        def root = tool name: 'Go 1.8', type: 'go'
+        REPO      = 'aristanetworks/go-cvprac'
+        BUILD_DIR = '__build'
+        GOPATH    = "${WORKSPACE}/${BUILD_DIR}"
+        SRC_PATH  = "${GOPATH}/src/github.com/${REPO}"
 
         projectName = 'GoCvpRac'
         //emailTo = 'eosplus-dev@arista.com'
         emailTo = 'cwomble@arista.com'
         emailFrom = 'eosplus-dev+jenkins@arista.com'
-
-        GOPATH=${root}
+        sh 'env | sort'
     }
 
     stages {
