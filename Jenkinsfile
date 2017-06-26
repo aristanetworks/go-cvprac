@@ -6,11 +6,15 @@
 pipeline {
     
     agent{ label 'exec'}
-    
-    env.REPO      = 'aristanetworks/go-cvprac'
-    env.BUILD_DIR = '__build'
-    env.GOPATH    = "${WORKSPACE}/${BUILD_DIR}"
-    env.SRC_PATH  = "${env.GOPATH}/src/github.com/${REPO}"
+
+    tools {
+        go 'Go 1.8' 
+    }
+
+    //env.REPO      = 'aristanetworks/go-cvprac'
+    //env.BUILD_DIR = '__build'
+    //env.GOPATH    = "${WORKSPACE}/${BUILD_DIR}"
+    //env.SRC_PATH  = "${env.GOPATH}/src/github.com/${REPO}"
 
     options {
         buildDiscarder(
@@ -28,6 +32,7 @@ pipeline {
     stages {
         stage ('Checkout') {
             steps {
+                sh 'go version'
                 sh 'printenv'
                 checkout scm
             }
