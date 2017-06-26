@@ -8,7 +8,16 @@ node ('exec') {
   env.BUILD_DIR = '__build'
   env.GOPATH    = "${WORKSPACE}/${BUILD_DIR}"
   env.SRC_PATH  = "${env.GOPATH}/src/github.com/${REPO}"
-  
+
+    // Install the desired Go version
+    def root = tool name: 'Go 1.8', type: 'go'
+ 
+    // Export environment variables pointing to the directory where Go was installed
+    withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin"]) {
+        sh 'go version'
+    }
+
+
   stage ('Checkout') {
           sh "mkdir -p ${env.SRC_PATH}"
           dir(env.SRC_PATH) {
