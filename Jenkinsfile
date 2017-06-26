@@ -16,9 +16,8 @@ pipeline {
     environment {
         REPO      = 'aristanetworks/go-cvprac'
         BUILD_DIR = '__build'
-        GOPATH    = "${WORKSPACE}/${BUILD_DIR}"
-        SRC_PATH  = "${GOPATH}/src/github.com/${REPO}"
-
+        GOPATH    = '${WORKSPACE}/${BUILD_DIR}'
+        SRC_PATH  = '${GOPATH}/src/github.com/${REPO}'
         projectName = 'GoCvpRac'
         //emailTo = 'eosplus-dev@arista.com'
         emailTo = 'cwomble@arista.com'
