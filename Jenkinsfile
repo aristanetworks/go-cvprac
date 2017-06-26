@@ -10,9 +10,12 @@ node ('exec') {
   env.SRC_PATH  = "${env.GOPATH}/src/github.com/${REPO}"
   
   stage ('Checkout') {
-          sh 'go version'
-          sh 'printenv'
-          checkout scm
+          sh "mkdir -p ${env.SRC_PATH}"
+          dir(env.SRC_PATH) {
+             sh 'go version'
+             sh 'printenv'
+             checkout scm
+          }
   }
 
   stage ('Install_Requirements') {
