@@ -25,33 +25,43 @@ node ('exec') {
   }
 
   stage ('Install_Requirements') {
+          dir(env.SRC_PATH) {
           sh """
           make bootstrap || true
           """
           // Stub dummy file
           writeFile file: "api/cvp_node.gcfg", text: "\n[node \"10.81.110.115\"]\nusername = cvpadmin\npassword = cvp123\n"
+          }
   }
 
   stage ('Check_style') {
+          dir(env.SRC_PATH) {
           sh """
               make check || true
           """
+          }
   }
 
   stage ('Unit Test') {
+          dir(env.SRC_PATH) {
           sh """
               make unittest || true
           """
+          }
   }
 
   stage ('System Test') {
+          dir(env.SRC_PATH) {
           sh """
               make systest || true
           """
+          }
   }
 
   stage ('Cleanup') {
+          dir(env.SRC_PATH) {
           sh 'echo cleanup step'
+          }
   }
     }
 }
