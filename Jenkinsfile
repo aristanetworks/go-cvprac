@@ -1,98 +1,16 @@
 #!/usr/bin/env groovy
-
-/**
- * Jenkinsfile
- */
 pipeline {
-    
-    agent{ label 'exec'}
-
-    tools {
-        go 'Go 1.8' 
-    }
-
-    //env.REPO      = 'aristanetworks/go-cvprac'
-    //env.BUILD_DIR = '__build'
-    //env.GOPATH    = "${WORKSPACE}/${BUILD_DIR}"
-    //env.SRC_PATH  = "${env.GOPATH}/src/github.com/${REPO}"
-
-    options {
-        buildDiscarder(
-            // Only keep the 10 most recent builds
-            logRotator(numToKeepStr:'10'))
-    }
-
-    environment {
-        projectName = 'GoCvpRac'
-        //emailTo = 'eosplus-dev@arista.com'
-        emailTo = 'cwomble@arista.com'
-        emailFrom = 'eosplus-dev+jenkins@arista.com'
-    }
-
+    agent { docker 'golang:1.8.3' }
     stages {
-        stage ('Checkout') {
+        stage('build') {
             steps {
-                sh 'go version'
-                sh 'printenv'
-                checkout scm
+                sh 'env.GOPATH=$PWD'
+                sh 'mkdir -p $GOPATH/src/github.com/aristanetworks/go-cvprac'
+                dir('$GOPATH/src/github.com/aristanetworks/go-cvprac') {
+                    sh 'go version'
+                    sh 'echo $GOPATH'
+                }
             }
-        }
-
-        stage ('Install_Requirements') {
-            steps {
-                sh """
-                make bootstrap || true
-                """
-                // Stub dummy file
-                writeFile file: "api/cvp_node.gcfg", text: "\n[node \"10.81.110.115\"]\nusername = cvpadmin\npassword = cvp123\n"
-            }
-        }
-
-        stage ('Check_style') {
-            steps {
-                sh """
-                    make check || true
-                """
-            }
-        }
-
-        stage ('Unit Test') {
-            steps {
-                sh """
-                    make unittest || true
-                """
-            }
-        }
-
-        stage ('System Test') {
-            steps {
-                sh """
-                    make systest || true
-                """
-            }
-        }
-
-        stage ('Cleanup') {
-            steps {
-                sh 'echo cleanup step'
-            }
-        }
-    }
-
-    post {
-        failure {
-            mail body: "${env.JOB_NAME} (${env.BUILD_NUMBER}) ${env.projectName} build error " +
-                       "is here: ${env.BUILD_URL}\nStarted by ${env.BUILD_CAUSE}" ,
-                 from: env.emailFrom,
-                 subject: "${env.projectName} ${env.JOB_NAME} (${env.BUILD_NUMBER}) build failed",
-                 to: env.emailTo
-        }
-        success {
-            mail body: "${env.JOB_NAME} (${env.BUILD_NUMBER}) ${env.projectName} build successful\n" +
-                       "Started by ${env.BUILD_CAUSE}",
-                 from: env.emailFrom,
-                 subject: "${env.projectName} ${env.JOB_NAME} (${env.BUILD_NUMBER}) build successful",
-                 to: env.emailTo
         }
     }
 }
