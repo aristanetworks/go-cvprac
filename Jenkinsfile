@@ -23,12 +23,12 @@ pipeline {
         //emailTo = 'eosplus-dev@arista.com'
         emailTo = 'cwomble@arista.com'
         emailFrom = 'eosplus-dev+jenkins@arista.com'
-        sh 'env | sort'
     }
 
     stages {
         stage ('Checkout') {
             steps {
+                sh 'printenv'
                 checkout scm
             }
         }
