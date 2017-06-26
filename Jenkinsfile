@@ -4,21 +4,28 @@
  * Jenkinsfile
  */
 pipeline {
+    
     agent{ label 'exec'}
+    
     options {
         buildDiscarder(
             // Only keep the 10 most recent builds
             logRotator(numToKeepStr:'10'))
     }
+
     environment {
+        // Install the desired Go version
+        def root = tool name: 'Go 1.8', type: 'go'
+
         projectName = 'GoCvpRac'
         //emailTo = 'eosplus-dev@arista.com'
         emailTo = 'cwomble@arista.com'
         emailFrom = 'eosplus-dev+jenkins@arista.com'
+
+        GOPATH=${root}
     }
 
     stages {
-
         stage ('Checkout') {
             steps {
                 checkout scm
