@@ -13,9 +13,8 @@ node ('exec') {
     def root = tool name: 'Go 1.8', type: 'go'
  
     // Export environment variables pointing to the directory where Go was installed
-    withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin"]) {
-        sh 'go version'
-
+    //withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin"]) {
+    withEnv(["GOPATH=${root}", "PATH+GO=${root}/bin"]) {
 
   stage ('Checkout') {
           sh "mkdir -p ${env.SRC_PATH}"
