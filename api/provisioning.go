@@ -549,12 +549,18 @@ func (c CvpRestAPI) GetParentContainerForDevice(deviceMAC string) (*Container, e
 // MoveDeviceToContainer moves a specified netelement to a container.
 func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Container,
 	commit bool) (*TaskInfo, error) {
-	parentCont, err := c.GetParentContainerForDevice(device.SystemMacAddress)
-	if err != nil {
-		return nil, fmt.Errorf("MoveDeviceToContainer: %s", err)
+	var fromID string
+	if device.ParentContainerID != "" {
+		fromID = device.ParentContainerID
+	} else {
+		parentCont, err := c.GetParentContainerForDevice(device.SystemMacAddress)
+		if err != nil {
+			return nil, fmt.Errorf("MoveDeviceToContainer: %s", err)
+		}
+		fromID = parentCont.Key
 	}
 
-	msg := "Moving device " + device.Fqdn + " from container " + parentCont.Name +
+	msg := "Moving device " + device.Fqdn + " from container " + fromID +
 		" to container " + container.Name
 
 	data := ActionRequest{Data: []Action{
@@ -568,7 +574,7 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 			ToID:        container.Key,
 			ToName:      container.Name,
 			ToIDType:    "container",
-			FromID:      parentCont.Key,
+			FromID:      fromID,
 			NodeName:    device.Fqdn,
 		},
 	}}

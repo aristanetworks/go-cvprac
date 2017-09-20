@@ -211,7 +211,7 @@ func (c CvpRestAPI) GetUndefinedDevices() ([]NetElement, error) {
 	numElements := len(data.NetElementList)
 	if numElements > 0 {
 		var idx int
-		res := make([]NetElement, numElements)
+		res = make([]NetElement, numElements)
 		for _, netElement := range data.NetElementList {
 			if netElement.ParentContainerID == "undefined_container" {
 				res[idx] = netElement
