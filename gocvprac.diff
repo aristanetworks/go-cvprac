@@ -1,0 +1,144 @@
+diff --git a/Jenkinsfile b/Jenkinsfile
+index 9f29b73..5369e69 100644
+--- a/Jenkinsfile
++++ b/Jenkinsfile
+@@ -4,64 +4,63 @@
+  * Jenkinsfile
+  */
+ node ('exec') {
+-  env.REPO      = 'aristanetworks/go-cvprac'
+-  env.BUILD_DIR = '__build'
+-  env.GOPATH    = "${WORKSPACE}/${BUILD_DIR}"
+-  env.SRC_PATH  = "${env.GOPATH}/src/github.com/${REPO}"
++    env.REPO      = 'aristanetworks/go-cvprac'
++    env.BUILD_DIR = '__build'
++    env.GOPATH    = "${WORKSPACE}/${BUILD_DIR}"
++    env.SRC_PATH  = "${env.GOPATH}/src/github.com/${REPO}"
+ 
+     // Install the desired Go version
+     def root = tool name: 'Go 1.8', type: 'go'
+  
+     // Export environment variables pointing to the directory where Go was installed
+     withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin:${env.GOPATH}/bin"]) {
++        stage ('Checkout') {
++            sh "mkdir -p ${env.SRC_PATH}"
++            dir(env.SRC_PATH) {
++                sh 'go version'
++                sh 'printenv'
++                checkout scm
++            }
++        }
++        
++        stage ('Install_Requirements') {
++            dir(env.SRC_PATH) {
++                sh """
++                make bootstrap || true
++                """
++                // Stub dummy file
++                writeFile file: "api/cvp_node.gcfg", text: "\n[node \"10.81.110.115\"]\nusername = cvpadmin\npassword = cvp123\n"
++            }
++        }
++        
++        stage ('Check_style') {
++            dir(env.SRC_PATH) {
++                sh """
++                make check || true
++                """
++            }
++        }
+ 
+-  stage ('Checkout') {
+-          sh "mkdir -p ${env.SRC_PATH}"
+-          dir(env.SRC_PATH) {
+-             sh 'go version'
+-             sh 'printenv'
+-             checkout scm
+-          }
+-  }
++        stage ('Unit Test') {
++            dir(env.SRC_PATH) {
++                sh """
++                make unittest || true
++                """
++            }
++        }
+ 
+-  stage ('Install_Requirements') {
+-          dir(env.SRC_PATH) {
+-          sh """
+-          make bootstrap || true
+-          """
+-          // Stub dummy file
+-          writeFile file: "api/cvp_node.gcfg", text: "\n[node \"10.81.110.115\"]\nusername = cvpadmin\npassword = cvp123\n"
+-          }
+-  }
++//  stage ('System Test') {
++//          dir(env.SRC_PATH) {
++//          sh """
++//              make systest || true
++//          """
++//          }
++//  }
+ 
+-  stage ('Check_style') {
+-          dir(env.SRC_PATH) {
+-          sh """
+-              make check || true
+-          """
+-          }
+-  }
+-
+-  stage ('Unit Test') {
+-          dir(env.SRC_PATH) {
+-          sh """
+-              make unittest || true
+-          """
+-          }
+-  }
+-
+-  stage ('System Test') {
+-          dir(env.SRC_PATH) {
+-          sh """
+-              make systest || true
+-          """
+-          }
+-  }
+-
+-  stage ('Cleanup') {
+-          dir(env.SRC_PATH) {
+-          sh 'echo cleanup step'
+-          }
+-  }
++        stage ('Cleanup') {
++            dir(env.SRC_PATH) {
++                sh 'echo cleanup step'
++            }
++        }
+     }
+ }
+diff --git a/api/configlet.go b/api/configlet.go
+index dabbf17..4fa679a 100644
+--- a/api/configlet.go
++++ b/api/configlet.go
+@@ -38,6 +38,7 @@ import (
+ 	"strconv"
+ )
+ 
++// ConfigletList represents the response enclosing a list of Configlets
+ type ConfigletList struct {
+ 	Total int         `json:"total"`
+ 	Data  []Configlet `json:"data"`
+@@ -238,11 +239,10 @@ func (c CvpRestAPI) UpdateConfiglet(config string, name string, key string) erro
+ }
+ 
+ // SearchConfigletsWithRange search function for configlets.
+-func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int, end int) (*ConfigletList, error) {
++func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int,
++	end int) (*ConfigletList, error) {
+ 	var info ConfigletList
+ 
+-	//queryparam := url.Values{"name": {key},}
+-
+ 	query := &url.Values{
+ 		"queryparam": {searchStr},
+ 		"startIndex": {strconv.Itoa(start)},

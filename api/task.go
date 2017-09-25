@@ -133,12 +133,12 @@ func (c CvpRestAPI) GetTaskByID(taskID int) (*CvpTask, error) {
 	return &info, nil
 }
 
-// GetTasks returns the current CVP Tasks that match the provided status
+// GetTasks returns the current CVP Tasks that match the provided string
 // and within the provided start/end range.
-func (c CvpRestAPI) GetTasks(status string, start int, end int) ([]CvpTask, error) {
+func (c CvpRestAPI) GetTasks(queryStr string, start int, end int) ([]CvpTask, error) {
 	var info CvpTaskList
 	query := &url.Values{
-		"queryparam": {status},
+		"queryparam": {queryStr},
 		"startIndex": {strconv.Itoa(start)},
 		"endIndex":   {strconv.Itoa(end)},
 	}
