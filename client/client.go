@@ -84,7 +84,7 @@ func Hosts(hosts ...string) Option {
 	return func(c *CvpClient) error {
 		var err error
 		if len(hosts) <= 0 {
-			return fmt.Errorf("Must define at least one host.")
+			return fmt.Errorf("Must define at least one host")
 		}
 		c.Hosts = hosts
 		c.HostPool, err = NewHostIterator(c.Hosts)
@@ -99,7 +99,7 @@ func Hosts(hosts ...string) Option {
 func Port(port int) Option {
 	return func(c *CvpClient) error {
 		if port <= 0 {
-			return fmt.Errorf("Invalid port number '%d'.", port)
+			return fmt.Errorf("Invalid port number [%d]", port)
 		}
 		c.Port = port
 		return nil
@@ -113,7 +113,7 @@ func Protocol(proto string) Option {
 		case "http":
 		case "https":
 		default:
-			return fmt.Errorf("Invalid protocol '%s'.", proto)
+			return fmt.Errorf("Invalid protocol [%s]", proto)
 		}
 		c.Protocol = proto
 		return nil
@@ -124,7 +124,7 @@ func Protocol(proto string) Option {
 func ConnectTimeout(timeout int) Option {
 	return func(c *CvpClient) error {
 		if timeout < 0 {
-			return fmt.Errorf("Timeout (seconds) must be >= 0.")
+			return fmt.Errorf("Timeout (seconds) must be >= 0")
 		}
 		c.Timeout = time.Duration(timeout) * time.Second
 		return nil
@@ -347,7 +347,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		case "POST":
 			resp, err = request.SetBody(data).Post(url)
 		default:
-			return nil, fmt.Errorf("Invalid. Request type '%s' not implemented.", reqType)
+			return nil, fmt.Errorf("Invalid. Request type [%s] not implemented", reqType)
 		}
 
 		if err != nil {

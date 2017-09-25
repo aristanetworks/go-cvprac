@@ -38,6 +38,7 @@ import (
 	"strconv"
 )
 
+// ConfigletList represents a list of configlets
 type ConfigletList struct {
 	Total int         `json:"total"`
 	Data  []Configlet `json:"data"`
@@ -238,7 +239,8 @@ func (c CvpRestAPI) UpdateConfiglet(config string, name string, key string) erro
 }
 
 // SearchConfigletsWithRange search function for configlets.
-func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int, end int) (*ConfigletList, error) {
+func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int,
+	end int) (*ConfigletList, error) {
 	var info ConfigletList
 
 	//queryparam := url.Values{"name": {key},}
