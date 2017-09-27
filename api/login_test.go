@@ -33,7 +33,6 @@ package cvpapi
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 )
 
@@ -48,7 +47,7 @@ func Test_CvpLoginRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	resp, err := api.Login("username", "password")
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 	assert(t, resp == nil, "Expected: nil, Got: %v", resp)
@@ -101,7 +100,7 @@ func Test_CvpLogoutRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	err := api.Logout()
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }

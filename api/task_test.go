@@ -33,7 +33,6 @@ package cvpapi
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 )
 
@@ -45,7 +44,7 @@ func Test_CvpGetTaskByIDRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetTaskByID(5)
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -97,7 +96,7 @@ func Test_CvpGetTaskByStatusRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetTaskByStatus("Pending")
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -149,7 +148,7 @@ func Test_CvpGetAllTasksRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetAllTasks()
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -201,7 +200,7 @@ func Test_CvpGetLogsByIDRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetLogsByID(5)
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -253,7 +252,7 @@ func Test_CvpAddNoteToTaskRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	err := api.AddNoteToTask(5, "note string")
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -305,7 +304,7 @@ func Test_CvpExecuteTaskRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	err := api.ExecuteTask(5)
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -357,7 +356,7 @@ func Test_CvpCancelTaskRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	err := api.CancelTask(5)
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }

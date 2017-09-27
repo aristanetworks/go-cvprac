@@ -236,7 +236,6 @@ func TestCvpRac_ClientRetry_UnitTest(t *testing.T) {
 	_, err = cvpClient.Post("/StatusMovedPermanently-test", nil, nil)
 	assert(t, err != nil, "POST returned no error when it should have "+
 		"returned StatusMovedPermanently(301)")
-	//assert(t, err.Error() == "Status: 301", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusBadRequest-test", nil, nil)
 	assert(t, err != nil, "POST returned no error when it should have "+

@@ -33,7 +33,6 @@ package cvpapi
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 )
 
@@ -45,7 +44,7 @@ func Test_CvpGetConfigletsByDeviceIDRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetConfigletsByDeviceID("00:50:56:50:a8:af")
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }

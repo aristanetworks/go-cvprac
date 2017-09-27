@@ -265,7 +265,7 @@ func (c *CvpClient) createSession(allNodes bool) error {
 		}
 	}
 	c.Client = nil
-	return errors.Errorf("%s", strings.Join(errorMsg, "\n"))
+	return errors.New(strings.Join(errorMsg, "\n"))
 }
 
 func (c *CvpClient) login() error {
@@ -286,11 +286,11 @@ func (c *CvpClient) login() error {
 	}
 
 	if err = checkResponse(resp); err != nil {
-		return errors.Wrapf(err, "login checkResponse failed")
+		return errors.Wrapf(err, "checkResponse failed")
 	}
 
 	if err = json.Unmarshal(resp.Body(), &loginResp); err != nil {
-		return errors.Wrapf(err, "login unmarshal failed")
+		return errors.Wrapf(err, "unmarshal failed")
 	}
 	c.SessID = loginResp.SessionID
 
@@ -358,7 +358,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		// Underlying request issue. Could be getsockopt error (like network not reachable)
 		if resp.RawResponse == nil {
 			// retry another session
-			err = errors.New("makeRequest RawResponse error")
+			err = errors.New("RawResponse error")
 			continue
 		}
 
@@ -366,25 +366,25 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 
 		if status == 301 {
 			// retry another session
-			err = errors.Errorf("makeRequest Status: %d", status)
+			err = errors.Errorf("Status: %d", status)
 			continue
 		}
 		// client error
 		if status >= 400 && status < 500 {
 			// retry another session
-			err = errors.Errorf("makeRequest Status: %d", status)
+			err = errors.Errorf("Status: %d", status)
 			continue
 		}
 		// server error
 		if status >= 500 && status < 600 {
 			// retry another session
-			err = errors.Errorf("makeRequest Status: %d", status)
+			err = errors.Errorf("Status: %d", status)
 			continue
 		}
 
 		var info cvpapi.ErrorResponse
 		if err = json.Unmarshal(resp.Body(), &info); err != nil {
-			return nil, errors.Wrap(err, "makeRequest unmarshal failed")
+			return nil, errors.Wrap(err, "unmarshal failed")
 		}
 
 		// check and see if we have a CVP error payload

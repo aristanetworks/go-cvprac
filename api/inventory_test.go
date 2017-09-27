@@ -32,7 +32,6 @@ package cvpapi
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 )
 
@@ -44,7 +43,7 @@ func Test_CvpGetAllDevicesRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetAllDevices()
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -94,7 +93,7 @@ func Test_CvpGetDeviceByNameRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetDeviceByName("DeviceName")
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
