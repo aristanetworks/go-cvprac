@@ -421,8 +421,8 @@ func parseURLValues(params *url.Values) (map[string]string, error) {
 	newMap := make(map[string]string)
 	for k, v := range *params {
 		if len(v) > 1 {
-			return nil, errors.Errorf("Parsing URL Values: Multiple values for param %s. Values: %v",
-				k, v)
+			return nil, errors.Errorf("Parsing URL Values: Multiple values for "+
+				"param %s. Values: %v", k, v)
 		}
 		newMap[k] = params.Get(k)
 	}
