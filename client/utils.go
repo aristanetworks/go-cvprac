@@ -31,7 +31,7 @@
 
 package client
 
-import "fmt"
+import "github.com/pkg/errors"
 
 const initVal = -1
 
@@ -70,7 +70,7 @@ func (h *HostIterator) Cycle() string {
 // NewHostIterator inits an itorator for host list
 func NewHostIterator(hosts []string) (*HostIterator, error) {
 	if len(hosts) == 0 {
-		return nil, fmt.Errorf("Can not iterate over empty list")
+		return nil, errors.New("Can not iterate over empty list")
 	}
 	return &HostIterator{hosts: hosts, current: initVal}, nil
 }

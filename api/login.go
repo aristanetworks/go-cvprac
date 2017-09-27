@@ -33,7 +33,8 @@ package cvpapi
 
 import (
 	"encoding/json"
-	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 // LoginResp contains the response from a login request
@@ -103,15 +104,15 @@ func (c *CvpRestAPI) Login(username, password string) (*LoginResp, error) {
 
 	rawResp, err := c.client.Post("/login/authenticate.do", nil, auth)
 	if err != nil {
-		return nil, fmt.Errorf("Login: %s", err)
+		return nil, errors.Errorf("Login: %s", err)
 	}
 
 	if err = json.Unmarshal(rawResp, &resp); err != nil {
-		return nil, fmt.Errorf("Login: %s", err)
+		return nil, errors.Errorf("Login: %s", err)
 	}
 
 	if err := resp.Error(); err != nil {
-		return nil, fmt.Errorf("Login: %s", err)
+		return nil, errors.Errorf("Login: %s", err)
 	}
 
 	return &resp, nil
@@ -123,15 +124,15 @@ func (c *CvpRestAPI) Logout() error {
 
 	rawResp, err := c.client.Post("/login/logout.do", nil, nil)
 	if err != nil {
-		return fmt.Errorf("Logout: %s", err)
+		return errors.Errorf("Logout: %s", err)
 	}
 
 	if err = json.Unmarshal(rawResp, &resp); err != nil {
-		return fmt.Errorf("Logout: %s", err)
+		return errors.Errorf("Logout: %s", err)
 	}
 
 	if err := resp.Error(); err != nil {
-		return fmt.Errorf("Logout: %s", err)
+		return errors.Errorf("Logout: %s", err)
 	}
 	return nil
 }

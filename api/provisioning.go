@@ -33,9 +33,10 @@ package cvpapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 // ActionRequest request structure for saveTopology
@@ -213,15 +214,15 @@ func (c CvpRestAPI) GetConfigletsByDeviceID(mac string) ([]Configlet, error) {
 
 	resp, err := c.client.Get("/provisioning/getConfigletsByNetElementId.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("GetConfigletsByDeviceID: %s", err)
+		return nil, errors.Errorf("GetConfigletsByDeviceID: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, fmt.Errorf("GetConfigletsByDeviceID: %s", err)
+		return nil, errors.Errorf("GetConfigletsByDeviceID: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
-		return nil, fmt.Errorf("GetConfigletsByDeviceID: %s", err)
+		return nil, errors.Errorf("GetConfigletsByDeviceID: %s", err)
 	}
 
 	return info.ConfigletList, nil
@@ -238,15 +239,15 @@ func (c CvpRestAPI) addTempAction(data ActionRequest) error {
 
 	reqResp, err := c.client.Post("/ztp/addTempAction.do", query, data)
 	if err != nil {
-		return fmt.Errorf("addTempAction: %s", err)
+		return errors.Errorf("addTempAction: %s", err)
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return fmt.Errorf("addTempAction: %s", err)
+		return errors.Errorf("addTempAction: %s", err)
 	}
 
 	if err := resp.Error(); err != nil {
-		return fmt.Errorf("addTempAction: %s", err)
+		return errors.Errorf("addTempAction: %s", err)
 	}
 	return nil
 }
@@ -260,11 +261,11 @@ func (c CvpRestAPI) SaveTopology() (*TaskInfo, error) {
 
 	reqResp, err := c.client.Post("/ztp/v2/saveTopology.do", nil, []string{})
 	if err != nil {
-		return nil, fmt.Errorf("SaveTopology: %s", err)
+		return nil, errors.Errorf("SaveTopology: %s", err)
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, fmt.Errorf("SaveTopology: %s", err)
+		return nil, errors.Errorf("SaveTopology: %s", err)
 	}
 
 	return &resp.Data, nil
@@ -276,7 +277,7 @@ func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, com
 
 	configlets, err := c.GetConfigletsByDeviceID(dev.SystemMacAddress)
 	if err != nil {
-		return nil, fmt.Errorf("ApplyConfigletsToDevice: %s", err)
+		return nil, errors.Errorf("ApplyConfigletsToDevice: %s", err)
 	}
 
 	// Get a list of the names and keys of the configlets
@@ -327,7 +328,7 @@ func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, com
 	}}
 
 	if err := c.addTempAction(data); err != nil {
-		return nil, fmt.Errorf("ApplyConfigletsToDevice: %s", err)
+		return nil, errors.Errorf("ApplyConfigletsToDevice: %s", err)
 	}
 	if commit {
 		return c.SaveTopology()
@@ -349,7 +350,7 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 
 	configlets, err := c.GetConfigletsByDeviceID(dev.SystemMacAddress)
 	if err != nil {
-		return nil, fmt.Errorf("RemoveConfigletsFromDevice: %s", err)
+		return nil, errors.Errorf("RemoveConfigletsFromDevice: %s", err)
 	}
 
 	// Get a list of the names/keys of configlets to keep
@@ -418,7 +419,7 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 		},
 	}}
 	if err := c.addTempAction(data); err != nil {
-		return nil, fmt.Errorf("RemoveConfigletsFromDevice: %s", err)
+		return nil, errors.Errorf("RemoveConfigletsFromDevice: %s", err)
 	}
 
 	if commit {
@@ -487,15 +488,15 @@ func (c CvpRestAPI) SearchTopologyWithRange(querystr string, start int,
 
 	reqResp, err := c.client.Get("/provisioning/searchTopology.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("SearchTopologyWithRange: %s", err)
+		return nil, errors.Errorf("SearchTopologyWithRange: %s", err)
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, fmt.Errorf("SearchTopologyWithRange: %s", err)
+		return nil, errors.Errorf("SearchTopologyWithRange: %s", err)
 	}
 
 	if err := resp.Error(); err != nil {
-		return nil, fmt.Errorf("SearchTopologyWithRange: %s", err)
+		return nil, errors.Errorf("SearchTopologyWithRange: %s", err)
 	}
 	return &resp, nil
 }
@@ -519,15 +520,15 @@ func (c CvpRestAPI) CheckCompliance(nodeKey string, nodeType string) (*Complianc
 
 	resp, err := c.client.Post("/provisioning/checkCompliance.do", nil, data)
 	if err != nil {
-		return nil, fmt.Errorf("CheckCompliance: %s", err)
+		return nil, errors.Errorf("CheckCompliance: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, fmt.Errorf("CheckCompliance: %s", err)
+		return nil, errors.Errorf("CheckCompliance: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
-		return nil, fmt.Errorf("CheckCompliance: %s", err)
+		return nil, errors.Errorf("CheckCompliance: %s", err)
 	}
 
 	return &info, nil
@@ -537,7 +538,7 @@ func (c CvpRestAPI) CheckCompliance(nodeKey string, nodeType string) (*Complianc
 func (c CvpRestAPI) GetParentContainerForDevice(deviceMAC string) (*Container, error) {
 	results, err := c.SearchTopologyWithRange(deviceMAC, 0, 0)
 	if err != nil {
-		return nil, fmt.Errorf("GetParentContainerForDevice: %s", err)
+		return nil, errors.Errorf("GetParentContainerForDevice: %s", err)
 	}
 	if results.Total > 0 {
 		name := results.NetElementContainerList[0].ContainerName
@@ -551,7 +552,7 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 	commit bool) (*TaskInfo, error) {
 	parentCont, err := c.GetParentContainerForDevice(device.SystemMacAddress)
 	if err != nil {
-		return nil, fmt.Errorf("MoveDeviceToContainer: %s", err)
+		return nil, errors.Errorf("MoveDeviceToContainer: %s", err)
 	}
 
 	msg := "Moving device " + device.Fqdn + " from container " + parentCont.Name +
@@ -573,7 +574,7 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 		},
 	}}
 	if err := c.addTempAction(data); err != nil {
-		return nil, fmt.Errorf("MoveDeviceToContainer: %s", err)
+		return nil, errors.Errorf("MoveDeviceToContainer: %s", err)
 	}
 
 	if commit {
@@ -652,15 +653,15 @@ func (c CvpRestAPI) GetImages(querystr string, start int, end int) ([]ImageInfo,
 
 	reqResp, err := c.client.Get("/image/getImages.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("GetImages: %s", err)
+		return nil, errors.Errorf("GetImages: %s", err)
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, fmt.Errorf("GetImages: %s", err)
+		return nil, errors.Errorf("GetImages: %s", err)
 	}
 
 	if err := resp.Error(); err != nil {
-		return nil, fmt.Errorf("GetImages: %s", err)
+		return nil, errors.Errorf("GetImages: %s", err)
 	}
 	return resp.Data, nil
 }
@@ -676,15 +677,15 @@ func (c CvpRestAPI) GetImageBundles(querystr string, start, end int) ([]ImageBun
 
 	reqResp, err := c.client.Get("/image/getImageBundles.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("GetImageBundles: %s", err)
+		return nil, errors.Errorf("GetImageBundles: %s", err)
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, fmt.Errorf("GetImageBundles: %s", err)
+		return nil, errors.Errorf("GetImageBundles: %s", err)
 	}
 
 	if err := resp.Error(); err != nil {
-		return nil, fmt.Errorf("GetImageBundles: %s", err)
+		return nil, errors.Errorf("GetImageBundles: %s", err)
 	}
 	return resp.Data, nil
 
@@ -722,15 +723,15 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 
 	reqResp, err := c.client.Get("/image/getImageBundleByName.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("GetImageBundleByName: %s", err)
+		return nil, errors.Errorf("GetImageBundleByName: %s", err)
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, fmt.Errorf("GetImageBundleByName: %s", err)
+		return nil, errors.Errorf("GetImageBundleByName: %s", err)
 	}
 
 	if err := resp.Error(); err != nil {
-		return nil, fmt.Errorf("GetImageBundleByName: %s", err)
+		return nil, errors.Errorf("GetImageBundleByName: %s", err)
 	}
 	ret := &ImageBundleInfo{
 		AppliedContainersCount: resp.AppliedContainersCount,
@@ -774,7 +775,7 @@ func (c CvpRestAPI) ApplyImageToDevice(imageInfo *ImageBundleInfo, netElement *N
 		},
 	}}
 	if err := c.addTempAction(data); err != nil {
-		return nil, fmt.Errorf("ApplyImageToDevice: %s", err)
+		return nil, errors.Errorf("ApplyImageToDevice: %s", err)
 	}
 
 	if commit {
@@ -805,7 +806,7 @@ func (c CvpRestAPI) ApplyImageToContainer(imageInfo *ImageBundleInfo, container 
 		},
 	}}
 	if err := c.addTempAction(data); err != nil {
-		return nil, fmt.Errorf("ApplyImageToContainer: %s", err)
+		return nil, errors.Errorf("ApplyImageToContainer: %s", err)
 	}
 
 	if commit {
@@ -854,7 +855,7 @@ func (c CvpRestAPI) DeployDevice(netElement *NetElement, container *Container,
 func (c CvpRestAPI) DeployDeviceWithImage(netElement *NetElement, container *Container,
 	image string, configlets ...Configlet) (*TaskInfo, error) {
 	if _, err := c.MoveDeviceToContainer(netElement, container, false); err != nil {
-		return nil, fmt.Errorf("DeployDeviceWithImage: %s", err)
+		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 	}
 
 	conf, err := c.GetTempConfigByNetElementID(netElement.SystemMacAddress)
@@ -865,16 +866,16 @@ func (c CvpRestAPI) DeployDeviceWithImage(netElement *NetElement, container *Con
 
 	if _, err = c.ApplyConfigletsToDevice("DeployDevice", netElement, false,
 		applyConfiglets...); err != nil {
-		return nil, fmt.Errorf("DeployDeviceWithImage: %s", err)
+		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 	}
 
 	if image != "" {
 		imageBundle, err := c.GetImageBundleByName(image)
 		if err != nil {
-			return nil, fmt.Errorf("DeployDeviceWithImage: %s", err)
+			return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 		}
 		if _, err = c.ApplyImageToDevice(imageBundle, netElement, false); err != nil {
-			return nil, fmt.Errorf("DeployDeviceWithImage: %s", err)
+			return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 		}
 	}
 	return c.SaveTopology()
@@ -904,15 +905,15 @@ func (c CvpRestAPI) GetTempConfigByNetElementID(netElementID string) (*TempConfi
 
 	reqResp, err := c.client.Get("/provisioning/getTempConfigsByNetElementId.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("GetTempConfigByNetElementID: %s", err)
+		return nil, errors.Errorf("GetTempConfigByNetElementID: %s", err)
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, fmt.Errorf("GetTempConfigByNetElementID: %s", err)
+		return nil, errors.Errorf("GetTempConfigByNetElementID: %s", err)
 	}
 
 	if err := resp.Error(); err != nil {
-		return nil, fmt.Errorf("GetTempConfigByNetElementID: %s", err)
+		return nil, errors.Errorf("GetTempConfigByNetElementID: %s", err)
 	}
 	return &resp, nil
 
