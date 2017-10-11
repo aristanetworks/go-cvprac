@@ -228,7 +228,7 @@ func (c CvpRestAPI) GetConfigletsByDeviceID(mac string) ([]Configlet, error) {
 	return info.ConfigletList, nil
 }
 
-func (c CvpRestAPI) addTempAction(data ActionRequest) error {
+func (c CvpRestAPI) addTempAction(data *ActionRequest) error {
 	var resp ErrorResponse
 
 	query := &url.Values{
@@ -274,6 +274,9 @@ func (c CvpRestAPI) SaveTopology() (*TaskInfo, error) {
 // ApplyConfigletsToDevice apply the configlets to the device.
 func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, commit bool,
 	newConfiglets ...Configlet) (*TaskInfo, error) {
+	if dev == nil {
+		return nil, errors.Errorf("ApplyConfigletsToDevice: nil NetElement")
+	}
 
 	configlets, err := c.GetConfigletsByDeviceID(dev.SystemMacAddress)
 	if err != nil {
@@ -298,7 +301,7 @@ func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, com
 	info := appName + ": Configlet Assign: to Device " + dev.Fqdn
 	infoPreview := "<b>Configlet Assign:</b> to Device" + dev.Fqdn
 
-	data := ActionRequest{Data: []Action{
+	data := &ActionRequest{Data: []Action{
 		Action{
 			Info:                            info,
 			InfoPreview:                     infoPreview,
@@ -347,6 +350,9 @@ func (c CvpRestAPI) ApplyConfigletToDevice(appName string, dev *NetElement,
 // RemoveConfigletsFromDevice Remove the configlets from the device.
 func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, commit bool,
 	remConfiglets ...Configlet) (*TaskInfo, error) {
+	if dev == nil {
+		return nil, errors.Errorf("RemoveConfigletsFromDevice: nil NetElement")
+	}
 
 	configlets, err := c.GetConfigletsByDeviceID(dev.SystemMacAddress)
 	if err != nil {
@@ -389,7 +395,7 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 	info := appName + ": Configlet Remove: from Device " + dev.Fqdn
 	infoPreview := "<b>Configlet Remove:</b> from Device" + dev.Fqdn
 
-	data := ActionRequest{Data: []Action{
+	data := &ActionRequest{Data: []Action{
 		Action{
 			ID:                              1,
 			Info:                            info,
@@ -441,7 +447,7 @@ func (c CvpRestAPI) containerOp(containerName, containerKey, parentName,
 
 	msg := operation + " container " + containerName + " under container " + parentName
 
-	data := ActionRequest{Data: []Action{
+	data := &ActionRequest{Data: []Action{
 		Action{
 			Info:        msg,
 			InfoPreview: msg,
@@ -550,6 +556,13 @@ func (c CvpRestAPI) GetParentContainerForDevice(deviceMAC string) (*Container, e
 // MoveDeviceToContainer moves a specified netelement to a container.
 func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Container,
 	commit bool) (*TaskInfo, error) {
+	if device == nil {
+		return nil, errors.Errorf("MoveDeviceToContainer: nil NetElement")
+	}
+	if container == nil {
+		return nil, errors.Errorf("MoveDeviceToContainer: nil Container")
+	}
+
 	var fromID string
 	if device.ParentContainerID != "" {
 		fromID = device.ParentContainerID
@@ -564,7 +577,7 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 	msg := "Moving device " + device.Fqdn + " from container " + fromID +
 		" to container " + container.Name
 
-	data := ActionRequest{Data: []Action{
+	data := &ActionRequest{Data: []Action{
 		Action{
 			ID:          1,
 			Info:        msg,
@@ -761,9 +774,16 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 // ApplyImageToDevice Applies image bundle to device
 func (c CvpRestAPI) ApplyImageToDevice(imageInfo *ImageBundleInfo, netElement *NetElement,
 	commit bool) (*TaskInfo, error) {
+	if imageInfo == nil {
+		return nil, errors.Errorf("ApplyImageToDevice: nil ImageBundleInfo")
+	}
+	if netElement == nil {
+		return nil, errors.Errorf("ApplyImageToDevice: nil NetElement")
+	}
+
 	msg := "Apply image " + imageInfo.Name + " to NetElement " + netElement.Fqdn
 
-	data := ActionRequest{Data: []Action{
+	data := &ActionRequest{Data: []Action{
 		Action{
 			ID:          1,
 			Info:        msg,
@@ -793,8 +813,15 @@ func (c CvpRestAPI) ApplyImageToDevice(imageInfo *ImageBundleInfo, netElement *N
 // ApplyImageToContainer Applies image bundle to container
 func (c CvpRestAPI) ApplyImageToContainer(imageInfo *ImageBundleInfo, container *Container,
 	commit bool) (*TaskInfo, error) {
+	if imageInfo == nil {
+		return nil, errors.Errorf("ApplyImageToContainer: nil ImageBundleInfo")
+	}
+	if container == nil {
+		return nil, errors.Errorf("ApplyImageToContainer: nil Container")
+	}
+
 	msg := "Apply image " + imageInfo.Name + " to Container " + container.Name
-	data := ActionRequest{Data: []Action{
+	data := &ActionRequest{Data: []Action{
 		Action{
 			ID:          1,
 			Info:        msg,
@@ -824,9 +851,16 @@ func (c CvpRestAPI) ApplyImageToContainer(imageInfo *ImageBundleInfo, container 
 // RemoveImageFromContainer removes image bundle from container
 func (c CvpRestAPI) RemoveImageFromContainer(imageInfo *ImageBundleInfo,
 	container *Container) (*TaskInfo, error) {
+	if imageInfo == nil {
+		return nil, errors.Errorf("RemoveImageFromContainer: nil ImageBundleInfo")
+	}
+	if container == nil {
+		return nil, errors.Errorf("RemoveImageFromContainer: nil Container")
+	}
+
 	msg := "Remove image " + imageInfo.Name + " from Container " + container.Name
 
-	data := ActionRequest{Data: []Action{
+	data := &ActionRequest{Data: []Action{
 		Action{
 			ID:             1,
 			Info:           msg,
