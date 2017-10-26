@@ -434,6 +434,46 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 	return nil, nil
 }
 
+// ResetDevice Resets/Reboots the device to factory setting.
+func (c CvpRestAPI) ResetDevice(appName string, dev *NetElement,
+	container *Container, commit bool) (*TaskInfo, error) {
+	if dev == nil {
+		return nil, errors.Errorf("ResetDevice: nil NetElement ref provided")
+	}
+	if container == nil {
+		return nil, errors.Errorf("ResetDevice: nil Container ref provided")
+	}
+
+	info := appName + ": Reset: Device Reset: %s - To be Reset" + dev.Fqdn
+	infoPreview := "<b>Device Reset:</b> %s - To be Reset" + dev.Fqdn
+
+	data := &ActionRequest{Data: []Action{
+		Action{
+			ID:          1,
+			Action:      "reset",
+			FromID:      dev.ParentContainerID,
+			FromName:    container.Name,
+			Info:        info,
+			InfoPreview: infoPreview,
+			NodeID:      dev.SystemMacAddress,
+			NodeName:    dev.Fqdn,
+			NodeType:    "netelement",
+			ToID:        "undefined_container",
+			ToIDType:    "container",
+			ParentTask:  "",
+		},
+	}}
+
+	if err := c.addTempAction(data); err != nil {
+		return nil, errors.Errorf("ResetDevice: %s", err)
+	}
+
+	if commit {
+		return c.SaveTopology()
+	}
+	return nil, nil
+}
+
 // RemoveConfigletFromDevice Remove the configlets from the device.
 func (c CvpRestAPI) RemoveConfigletFromDevice(appName string, dev *NetElement,
 	remConfiglet *Configlet, commit bool) (*TaskInfo, error) {
