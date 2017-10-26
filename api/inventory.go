@@ -182,7 +182,11 @@ func (c CvpRestAPI) GetDeviceByName(fqdn string) (*NetElement, error) {
 	}
 
 	if len(data.NetElementList) > 0 {
-		return &data.NetElementList[0], nil
+		for idx, device := range data.NetElementList {
+			if device.Fqdn == fqdn {
+				return &data.NetElementList[idx], nil
+			}
+		}
 	}
 	return nil, nil
 }
