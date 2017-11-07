@@ -1017,7 +1017,7 @@ func (c CvpRestAPI) GetTempConfigByNetElementID(netElementID string) (*TempConfi
 
 }
 
-// GetAllTempActions gets the current temporary config for the supplied netElement
+// GetAllTempActions gets the list of current actions outstanding
 func (c CvpRestAPI) GetAllTempActions(start, end int) ([]Action, error) {
 	var resp struct {
 		Total int
@@ -1046,7 +1046,7 @@ func (c CvpRestAPI) GetAllTempActions(start, end int) ([]Action, error) {
 
 }
 
-// GetTempAction returns the Container for specified deviceMAC
+// GetTempAction returns the first outstanding action
 func (c CvpRestAPI) GetTempAction() (*Action, error) {
 	results, err := c.GetAllTempActions(0, 1)
 	if err != nil {
