@@ -70,10 +70,28 @@ type Action struct {
 	ToIDType                        string   `json:"toIdType"`
 	ToName                          string   `json:"toName"`
 
-	ID         int      `json:"id,omitempty"`
-	Note       string   `json:"note,omitempty"`
-	ChildTasks []string `json:"childTasks,omitempty"`
-	ParentTask string   `json:"parentTask,omitempty"`
+	CCID                 string   `json:"ccId,omitempty"`
+	ID                   int      `json:"id,omitempty"`
+	Note                 string   `json:"note,omitempty"`
+	ChildTasks           []string `json:"childTasks,omitempty"`
+	ParentTask           string   `json:"parentTask,omitempty"`
+	FactoryID            int      `json:"factoryId,omitempty"`
+	BestImageContainerID string   `json:"bestImageContainerId,omitempty"`
+	SessionID            string   `json:"sessionId,omitempty"`
+	ContainerKey         string   `json:"containerKey,omitempty"`
+	TaskID               int      `json:"taskId,omitempty"`
+	OldNodeName          string   `json:"oldNodeName,omitempty"`
+	NodeList             []string `json:"nodeList,omitempty"`
+	IgnoreNodeList       []string `json:"ignoreNodeList,omitempty"`
+	NodeNamesList        []string `json:"nodeNamesList,omitempty"`
+	IgnoreNodeNamesList  []string `json:"ignoreNodeNamesList,omitempty"`
+	UserID               string   `json:"userId,omitempty"`
+	Key                  string   `json:"key,omitempty"`
+	ImageBundleID        string   `json:"imageBundleId,omitempty"`
+	Mode                 string   `json:"mode,omitempty"`
+	Timestamp            float64  `json:"timestamp,omitempty"`
+	PageType             string   `json:"pageType,omitempty"`
+	ViaContainer         bool     `json:"viaContainer,omitempty"`
 }
 
 // TopologyResp ..
@@ -997,4 +1015,45 @@ func (c CvpRestAPI) GetTempConfigByNetElementID(netElementID string) (*TempConfi
 	}
 	return &resp, nil
 
+}
+
+// GetAllTempActions gets the list of current actions outstanding
+func (c CvpRestAPI) GetAllTempActions(start, end int) ([]Action, error) {
+	var resp struct {
+		Total int
+		Data  []Action
+		ErrorResponse
+	}
+
+	query := &url.Values{
+		"startIndex": {strconv.Itoa(start)},
+		"endIndex":   {strconv.Itoa(end)},
+	}
+
+	reqResp, err := c.client.Get("/provisioning/getAllTempActions.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetTempActions: %s", err)
+	}
+
+	if err = json.Unmarshal(reqResp, &resp); err != nil {
+		return nil, errors.Errorf("GetTempActions: %s", err)
+	}
+
+	if err := resp.Error(); err != nil {
+		return nil, errors.Errorf("GetTempActions: %s", err)
+	}
+	return resp.Data, nil
+
+}
+
+// GetTempAction returns the first outstanding action
+func (c CvpRestAPI) GetTempAction() (*Action, error) {
+	results, err := c.GetAllTempActions(0, 1)
+	if err != nil {
+		return nil, errors.Errorf("GetTempAction: %s", err)
+	}
+	if len(results) > 0 {
+		return &results[0], nil
+	}
+	return nil, nil
 }
