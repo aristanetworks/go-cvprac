@@ -181,11 +181,9 @@ func (c CvpRestAPI) GetDeviceByName(fqdn string) (*NetElement, error) {
 		return nil, errors.Errorf("GetDeviceByName: %s", err)
 	}
 
-	if len(data.NetElementList) > 0 {
-		for idx, device := range data.NetElementList {
-			if device.Fqdn == fqdn {
-				return &data.NetElementList[idx], nil
-			}
+	for idx, device := range data.NetElementList {
+		if device.Fqdn == fqdn {
+			return &data.NetElementList[idx], nil
 		}
 	}
 	return nil, nil
@@ -193,15 +191,27 @@ func (c CvpRestAPI) GetDeviceByName(fqdn string) (*NetElement, error) {
 
 // GetDevicesInContainer returns a CvpInventoryList based on container name provided
 func (c CvpRestAPI) GetDevicesInContainer(name string) ([]NetElement, error) {
-	data, err := c.GetInventory(name, 0, 0)
+	containerInfo, err := c.GetContainerByName(name)
 	if err != nil {
 		return nil, errors.Errorf("GetDevicesInContainer: %s", err)
+	} else if containerInfo == nil {
+		return nil, nil
 	}
 
-	if len(data.NetElementList) > 0 {
-		return data.NetElementList, nil
+	data, err := c.GetAllDevices()
+	if err != nil {
+		return nil, errors.Errorf("GetDevicesInContainer: %s", err)
+	} else if data == nil {
+		return nil, nil
 	}
-	return nil, nil
+
+	var netElements []NetElement
+	for idx, ele := range data {
+		if ele.ParentContainerID == containerInfo.Key {
+			netElements = append(netElements, data[idx])
+		}
+	}
+	return netElements, nil
 }
 
 // GetUndefinedDevices returns a NetElement list of devices within the Undefined container
