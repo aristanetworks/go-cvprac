@@ -301,19 +301,29 @@ func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, com
 		return nil, errors.Errorf("ApplyConfigletsToDevice: %s", err)
 	}
 
+	action, configletMap, builderMap, err := checkConfigMapping(configlets, newConfiglets)
+	if err != nil {
+		return nil, errors.Wrap(err, "ApplyConfigletsToDevice")
+	}
+
+	if !action {
+		return nil, nil
+	}
+
 	// Get a list of the names and keys of the configlets
 	var cnames []string
 	var ckeys []string
-
-	for _, configlet := range configlets {
-		cnames = append(cnames, configlet.Name)
-		ckeys = append(ckeys, configlet.Key)
+	for name, key := range configletMap {
+		cnames = append(cnames, name)
+		ckeys = append(ckeys, key)
 	}
 
-	// Add the new configlets to the end of the arrays
-	for _, entry := range newConfiglets {
-		cnames = append(cnames, entry.Name)
-		ckeys = append(ckeys, entry.Key)
+	// Get a list of the names and keys of the configlet builders
+	var cbnames []string
+	var cbkeys []string
+	for name, key := range builderMap {
+		cbnames = append(cbnames, name)
+		cbkeys = append(cbkeys, key)
 	}
 
 	info := appName + ": Configlet Assign: to Device " + dev.Fqdn
@@ -327,8 +337,8 @@ func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, com
 			Action:                          "associate",
 			NodeType:                        "configlet",
 			NodeID:                          "",
-			ConfigletBuilderList:            []string{},
-			ConfigletBuilderNamesList:       []string{},
+			ConfigletBuilderList:            cbkeys,
+			ConfigletBuilderNamesList:       cbnames,
 			ConfigletList:                   ckeys,
 			ConfigletNamesList:              cnames,
 			IgnoreConfigletBuilderNamesList: []string{},
@@ -1056,4 +1066,52 @@ func (c CvpRestAPI) GetTempAction() (*Action, error) {
 		return &results[0], nil
 	}
 	return nil, nil
+}
+
+// checkConfigMapping
+func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
+	map[string]string, map[string]string, error) {
+	builderMap := make(map[string]string)
+	configletMap := make(map[string]string)
+	for _, configlet := range applied {
+		switch configlet.Type {
+		case "Static":
+			fallthrough
+		case "Generated":
+			fallthrough
+		case "Reconciled":
+			configletMap[configlet.Name] = configlet.Key
+		case "Builder":
+			builderMap[configlet.Name] = configlet.Key
+		default:
+			return false, nil, nil, errors.Errorf("Invalid Configlet Type [%s]", configlet.Type)
+		}
+	}
+
+	var action bool
+	for _, configlet := range newconfiglets {
+		if _, found := configletMap[configlet.Name]; found {
+			continue
+		}
+		if _, found := builderMap[configlet.Name]; found {
+			continue
+		}
+		// didn't find this configlet in either maps, so it's new
+		action = true
+
+		switch configlet.Type {
+		case "Static":
+			fallthrough
+		case "Generated":
+			fallthrough
+		case "Reconciled":
+			configletMap[configlet.Name] = configlet.Key
+		case "Builder":
+			builderMap[configlet.Name] = configlet.Key
+		default:
+			return false, nil, nil, errors.Errorf("Invalid Configlet Type [%s]", configlet.Type)
+		}
+	}
+
+	return action, configletMap, builderMap, nil
 }

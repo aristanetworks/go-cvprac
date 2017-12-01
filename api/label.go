@@ -90,6 +90,20 @@ func (c CvpRestAPI) GetLabels(module, labelType, searchStr string,
 	return info.LabelList, nil
 }
 
+// GetLabel returns the label for name provided.
+func (c CvpRestAPI) GetLabel(name string) (*Label, error) {
+	labels, err := c.GetLabels("LABEL", "ALL", name, 0, 0)
+	if err != nil {
+		return nil, errors.Errorf("GetLabel Failed: %v", err)
+	}
+	for idx, label := range labels {
+		if label.Name == name {
+			return &labels[idx], nil
+		}
+	}
+	return nil, nil
+}
+
 // GetLabelInfo returns the label info for the specified labelID
 func (c CvpRestAPI) GetLabelInfo(labelID string) (*Label, error) {
 	var info Label
@@ -141,8 +155,9 @@ func (c CvpRestAPI) AddLabel(name string, note string, labeltype string) (*Label
 	return &info, nil
 }
 
-// DeleteLabels deletes a list of Labels.
-func (c CvpRestAPI) DeleteLabels(keys []string) error {
+// DeleteLabelsByKey deletes a group of Labels using list of their respective
+// Keys.
+func (c CvpRestAPI) DeleteLabelsByKey(keys []string) error {
 	var info ErrorResponse
 
 	data := map[string][]string{
@@ -164,9 +179,20 @@ func (c CvpRestAPI) DeleteLabels(keys []string) error {
 	return nil
 }
 
-// DeleteLabel deletes a Label.
-func (c CvpRestAPI) DeleteLabel(key string) error {
-	return c.DeleteLabels([]string{key})
+// DeleteLabelByKey deletes a Label using key.
+func (c CvpRestAPI) DeleteLabelByKey(key string) error {
+	return c.DeleteLabelsByKey([]string{key})
+}
+
+// DeleteLabelByName deletes a Label using its name
+func (c CvpRestAPI) DeleteLabelByName(name string) error {
+	label, err := c.GetLabel(name)
+	if err != nil {
+		return errors.Wrap(err, "DeleteLabel")
+	} else if label == nil {
+		return nil
+	}
+	return c.DeleteLabelsByKey([]string{label.Key})
 }
 
 // UpdateLabel updates a configlet.
