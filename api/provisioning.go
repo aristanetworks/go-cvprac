@@ -342,20 +342,10 @@ func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, com
 	}
 
 	// Get a list of the names and keys of the configlets
-	var cnames []string
-	var ckeys []string
-	for name, key := range configletMap {
-		cnames = append(cnames, name)
-		ckeys = append(ckeys, key)
-	}
+	ckeys, cnames := keyValueSliceFromMap(configletMap)
 
 	// Get a list of the names and keys of the configlet builders
-	var cbnames []string
-	var cbkeys []string
-	for name, key := range builderMap {
-		cbnames = append(cbnames, name)
-		cbkeys = append(cbkeys, key)
-	}
+	cbkeys, cbnames := keyValueSliceFromMap(builderMap)
 
 	info := appName + ": Configlet Assign: to Device " + dev.Fqdn
 	infoPreview := "<b>Configlet Assign:</b> to Device" + dev.Fqdn
@@ -418,38 +408,27 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 		return nil, errors.Errorf("RemoveConfigletsFromDevice: %s", err)
 	}
 
-	// Get a list of the names/keys of configlets to keep
-	// Do not add configlets from remConfiglets
-	var keepKeys []string
-	var keepNames []string
-	var found bool
-	// for each configlet applied to device
-	for _, configlet := range configlets {
-		found = false
-		// look at our list of configlets to remove
-		for _, rconfiglet := range remConfiglets {
-			// if the configlet is part of remove list
-			// skip it.
-			if configlet.Key == rconfiglet.Key {
-				found = true
-				break
-			}
-		}
-		if !found {
-			keepNames = append(keepNames, configlet.Name)
-			keepKeys = append(keepKeys, configlet.Key)
-		}
+	action, configletMap, builderMap, rmConfigletMap, rmBuilderMap, err :=
+		checkRemoveConfigMapping(configlets, remConfiglets)
+	if err != nil {
+		return nil, errors.Wrap(err, "RemoveConfigletsFromDevice")
+	}
+
+	if !action {
+		return nil, nil
 	}
 
 	// Build a list of the configlet names/keys to remove.
-	var delKeys []string
-	var delNames []string
+	cKeys, cNames := keyValueSliceFromMap(configletMap)
 
-	// Add the new configlets to the end of the arrays
-	for _, entry := range remConfiglets {
-		delNames = append(delNames, entry.Name)
-		delKeys = append(delKeys, entry.Key)
-	}
+	// Build a list of the configlet names/keys to remove.
+	cbKeys, cbNames := keyValueSliceFromMap(builderMap)
+
+	// Build a list of the configlet names/keys to remove.
+	rmKeys, rmNames := keyValueSliceFromMap(rmConfigletMap)
+
+	// Build a list of the configlet names/keys to remove.
+	rmbKeys, rmbNames := keyValueSliceFromMap(rmBuilderMap)
 
 	info := appName + ": Configlet Remove: from Device " + dev.Fqdn
 	infoPreview := "<b>Configlet Remove:</b> from Device" + dev.Fqdn
@@ -463,14 +442,14 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 			Action:                          "associate",
 			NodeType:                        "configlet",
 			NodeID:                          "",
-			ConfigletList:                   keepKeys,
-			ConfigletNamesList:              keepNames,
-			ConfigletBuilderList:            []string{},
-			ConfigletBuilderNamesList:       []string{},
-			IgnoreConfigletList:             delKeys,
-			IgnoreConfigletNamesList:        delNames,
-			IgnoreConfigletBuilderList:      []string{},
-			IgnoreConfigletBuilderNamesList: []string{},
+			ConfigletList:                   cKeys,
+			ConfigletNamesList:              cNames,
+			ConfigletBuilderList:            cbKeys,
+			ConfigletBuilderNamesList:       cbNames,
+			IgnoreConfigletList:             rmKeys,
+			IgnoreConfigletNamesList:        rmNames,
+			IgnoreConfigletBuilderList:      rmbKeys,
+			IgnoreConfigletBuilderNamesList: rmbNames,
 			ToID:                dev.SystemMacAddress,
 			ToIDType:            "netelement",
 			FromID:              "",
@@ -1099,7 +1078,9 @@ func (c CvpRestAPI) GetTempAction() (*Action, error) {
 	return nil, nil
 }
 
-// checkConfigMapping
+// checkConfigMapping Checks whether the new configlets to be applied are
+// already applied or not. Returns actionReqd ( bool ), configletMap,
+// and builderMap.
 func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 	map[string]string, map[string]string, error) {
 	builderMap := make(map[string]string)
@@ -1111,24 +1092,24 @@ func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 		case "Generated":
 			fallthrough
 		case "Reconciled":
-			configletMap[configlet.Name] = configlet.Key
+			configletMap[configlet.Key] = configlet.Name
 		case "Builder":
-			builderMap[configlet.Name] = configlet.Key
+			builderMap[configlet.Key] = configlet.Name
 		default:
 			return false, nil, nil, errors.Errorf("Invalid Configlet Type [%s]", configlet.Type)
 		}
 	}
 
-	var action bool
+	var actionReqd bool
 	for _, configlet := range newconfiglets {
-		if _, found := configletMap[configlet.Name]; found {
+		if _, found := configletMap[configlet.Key]; found {
 			continue
 		}
-		if _, found := builderMap[configlet.Name]; found {
+		if _, found := builderMap[configlet.Key]; found {
 			continue
 		}
 		// didn't find this configlet in either maps, so it's new
-		action = true
+		actionReqd = true
 
 		switch configlet.Type {
 		case "Static":
@@ -1136,13 +1117,78 @@ func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 		case "Generated":
 			fallthrough
 		case "Reconciled":
-			configletMap[configlet.Name] = configlet.Key
+			configletMap[configlet.Key] = configlet.Name
 		case "Builder":
-			builderMap[configlet.Name] = configlet.Key
+			builderMap[configlet.Key] = configlet.Name
 		default:
 			return false, nil, nil, errors.Errorf("Invalid Configlet Type [%s]", configlet.Type)
 		}
 	}
+	return actionReqd, configletMap, builderMap, nil
+}
 
-	return action, configletMap, builderMap, nil
+// checkRemoveConfigMapping Creates map of configlets that needs to be there after removal of
+// specific configlets
+func checkRemoveConfigMapping(applied []Configlet, rmConfiglets []Configlet) (bool,
+	map[string]string, map[string]string, map[string]string, map[string]string, error) {
+	rmBuilderMap := make(map[string]string)
+	rmConfigletMap := make(map[string]string)
+
+	for _, configlet := range rmConfiglets {
+		switch configlet.Type {
+		case "Static":
+			fallthrough
+		case "Generated":
+			fallthrough
+		case "Reconciled":
+			rmConfigletMap[configlet.Key] = configlet.Name
+		case "Builder":
+			rmBuilderMap[configlet.Key] = configlet.Name
+		default:
+			return false, nil, nil, nil, nil,
+				errors.Errorf("Invalid Configlet Type [%s]", configlet.Type)
+		}
+	}
+
+	var actionReqd bool
+	configletMap := make(map[string]string)
+	builderMap := make(map[string]string)
+	for _, configlet := range applied {
+		if _, found := rmConfigletMap[configlet.Key]; found {
+			continue
+		}
+		if _, found := rmBuilderMap[configlet.Key]; found {
+			continue
+		}
+		// didn't find this configlet in either maps, so it's new
+		actionReqd = true
+
+		switch configlet.Type {
+		case "Static":
+			fallthrough
+		case "Generated":
+			fallthrough
+		case "Reconciled":
+			configletMap[configlet.Key] = configlet.Name
+		case "Builder":
+			builderMap[configlet.Key] = configlet.Name
+		default:
+			return false, nil, nil, nil, nil,
+				errors.Errorf("Invalid Configlet Type [%s]", configlet.Type)
+		}
+	}
+
+	return actionReqd, configletMap, builderMap, rmConfigletMap, rmBuilderMap, nil
+}
+
+// keyValueSliceFromMap returns two string slices, one for keys in the map provided,
+// and one for the values.
+func keyValueSliceFromMap(m map[string]string) ([]string, []string) {
+	keys := []string{}
+	values := []string{}
+	for k, v := range m {
+		keys = append(keys, k)
+		values = append(values, v)
+	}
+	return keys, values
 }

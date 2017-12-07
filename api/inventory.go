@@ -250,10 +250,6 @@ func (c CvpRestAPI) GetDeviceContainer(fqdn string) (*Container, error) {
 		return nil, nil
 	}
 
-	if len(data.ContainerList) == 0 {
-		return nil, nil
-	}
-
 	var deviceKey string
 	for _, device := range data.NetElementList {
 		if device.Fqdn == fqdn {
