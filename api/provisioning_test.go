@@ -38,7 +38,7 @@ import (
 
 func Test_CvpGetConfigletsByDeviceIDRetError_UnitTest(t *testing.T) {
 	clientErr := errors.New("Client error")
-	expectedErr := errors.New("GetConfigletsByDeviceID: Client error")
+	expectedErr := errors.New("GetConfigletsByDeviceID: GetDeviceConfigletInfo: Client error")
 
 	client := NewMockClient("", clientErr)
 	api := NewCvpRestAPI(client)
