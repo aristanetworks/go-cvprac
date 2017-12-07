@@ -69,6 +69,8 @@ type NetElement struct {
 	DeviceInfo           string       `json:"deviceInfo"`
 	DeviceStatus         string       `json:"deviceStatus"`
 	ParentContainerID    string       `json:"parentContainerId"`
+
+	ErrorResponse
 }
 
 // TempAction is

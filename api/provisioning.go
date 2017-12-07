@@ -130,18 +130,18 @@ type DeviceStatus struct {
 	UnAuthorized int `json:"unAuthorized"`
 }
 
-// ConfigletInfo represents basic info related to a Configlet
-type ConfigletInfo struct {
+// ConfigletMapping represents basic info related to a Configlet
+type ConfigletMapping struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
 
-// DeviceConfiglets represents the configlets for a netelemet
-type DeviceConfiglets struct {
-	Total           int                      `json:"total"`
-	ConfigletMapper map[string]ConfigletInfo `json:"configletMapper"`
-	ConfigletList   []Configlet              `json:"configletList"`
+// ConfigletInfo represents the configlets for a netelemet
+type ConfigletInfo struct {
+	Total           int                         `json:"total"`
+	ConfigletMapper map[string]ConfigletMapping `json:"configletMapper"`
+	ConfigletList   []Configlet                 `json:"configletList"`
 
 	ErrorResponse
 }
@@ -220,9 +220,32 @@ type TaskInfo struct {
 	Status  string   `json:"status"`
 }
 
-// GetConfigletsByDeviceID returns the list of configlets applied to a device.
-func (c CvpRestAPI) GetConfigletsByDeviceID(mac string) ([]Configlet, error) {
-	var info DeviceConfiglets
+// GetDeviceByID returns NetElement info related to a device mac.
+func (c CvpRestAPI) GetDeviceByID(mac string) (*NetElement, error) {
+	var info NetElement
+
+	query := &url.Values{
+		"netElementId": {mac},
+	}
+
+	resp, err := c.client.Get("/provisioning/getNetElementById.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetDeviceByID: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return nil, errors.Errorf("GetDeviceByID: %s", err)
+	}
+
+	if err := info.Error(); err != nil {
+		return nil, errors.Errorf("GetDeviceByID: %s", err)
+	}
+	return &info, nil
+}
+
+// GetDeviceConfigletInfo returns all configlet info related to a device.
+func (c CvpRestAPI) GetDeviceConfigletInfo(mac string) (*ConfigletInfo, error) {
+	var info ConfigletInfo
 	query := &url.Values{
 		"netElementId": {mac},
 		"queryParam":   {""},
@@ -232,17 +255,25 @@ func (c CvpRestAPI) GetConfigletsByDeviceID(mac string) ([]Configlet, error) {
 
 	resp, err := c.client.Get("/provisioning/getConfigletsByNetElementId.do", query)
 	if err != nil {
-		return nil, errors.Errorf("GetConfigletsByDeviceID: %s", err)
+		return nil, errors.Errorf("GetDeviceConfigletInfo: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetConfigletsByDeviceID: %s", err)
+		return nil, errors.Errorf("GetDeviceConfigletInfo: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
+		return nil, errors.Errorf("GetDeviceConfigletInfo: %s", err)
+	}
+	return &info, nil
+}
+
+// GetConfigletsByDeviceID returns the list of configlets applied to a device.
+func (c CvpRestAPI) GetConfigletsByDeviceID(mac string) ([]Configlet, error) {
+	info, err := c.GetDeviceConfigletInfo(mac)
+	if err != nil {
 		return nil, errors.Errorf("GetConfigletsByDeviceID: %s", err)
 	}
-
 	return info.ConfigletList, nil
 }
 
