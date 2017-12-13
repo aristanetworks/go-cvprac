@@ -133,7 +133,7 @@ func (c CvpRestAPI) GetLabelInfo(labelID string) (*Label, error) {
 func (c CvpRestAPI) AddLabel(name string, note string, labeltype string) (*Label, error) {
 	var info Label
 
-	data := map[string]string{
+	data := map[string]interface{}{
 		"name": name,
 		"note": note,
 		"type": labeltype,

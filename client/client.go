@@ -46,7 +46,7 @@ import (
 
 	"net/http"
 
-	resty "gopkg.in/resty.v0"
+	resty "gopkg.in/resty.v1"
 )
 
 // NumRetryRequests specifies the number for retries to attempt
