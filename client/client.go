@@ -201,6 +201,9 @@ func NewCvpClient(options ...Option) (*CvpClient, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	c.Client = resty.New().SetHeaders(headers)
+
 	c.API = cvpapi.NewCvpRestAPI(c)
 
 	return c, nil
@@ -214,7 +217,7 @@ func (c *CvpClient) GetSessionID() string {
 func (c *CvpClient) initSession(host string) error {
 	var port int
 
-	c.Client = resty.New().SetHeaders(c.Headers)
+	c.Client.SetHeaders(c.Headers)
 
 	if c.Protocol == "https" {
 		port = 443
@@ -264,16 +267,12 @@ func (c *CvpClient) createSession(allNodes bool) error {
 			return nil
 		}
 	}
-	c.Client = nil
 	return errors.New(strings.Join(errorMsg, "\n"))
 }
 
 func (c *CvpClient) login() error {
 	var loginResp cvpapi.LoginResp
 
-	if c.Client == nil {
-		return errors.New("login: No valid session to CVP node")
-	}
 	c.SessID = ""
 	request := c.Client.R()
 
@@ -305,10 +304,6 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 
 	retryCnt = NumRetryRequests
 
-	if c.Client == nil {
-		return nil, errors.New("makeRequest No valid session to CVP node")
-	}
-
 	request := c.Client.R()
 
 	if params != nil {
@@ -331,11 +326,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 			}
 			// Not the first time through the loop. Retrying request so
 			// create a session to another CVP node...but exclude this one.
-			c.createSession(false)
-
-			// Verify that we can connect to at least one node
-			// otherwise raise the last error
-			if c.Client == nil {
+			if err := c.createSession(false); err != nil {
 				return nil, err
 			}
 			retryCnt = NumRetryRequests
