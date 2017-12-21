@@ -85,7 +85,7 @@ func (c CvpRestAPI) GetLabels(module, labelType, searchStr string,
 	}
 
 	if err := info.Error(); err != nil {
-		return nil, errors.Errorf("SearchConfiglets: %s", err)
+		return nil, errors.Errorf("GetLabels: %s", err)
 	}
 	return info.LabelList, nil
 }
