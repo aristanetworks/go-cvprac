@@ -321,11 +321,9 @@ func (c CvpRestAPI) GetContainerByName(name string) (*Container, error) {
 	if err != nil {
 		return nil, errors.Errorf("GetContainerByName: %s", err)
 	}
-	if data.Total > 0 {
-		for _, cont := range data.ContainerList {
-			if cont.Name == name {
-				return &cont, nil
-			}
+	for _, cont := range data.ContainerList {
+		if cont.Name == name {
+			return &cont, nil
 		}
 	}
 	return nil, nil

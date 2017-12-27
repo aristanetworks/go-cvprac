@@ -624,7 +624,7 @@ func (c CvpRestAPI) GetParentContainerForDevice(deviceMAC string) (*Container, e
 	if err != nil {
 		return nil, errors.Errorf("GetParentContainerForDevice: %s", err)
 	}
-	if results.Total > 0 {
+	if len(results.NetElementContainerList) > 0 {
 		name := results.NetElementContainerList[0].ContainerName
 		return c.GetContainerByName(name)
 	}
