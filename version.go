@@ -28,10 +28,6 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
-
-// Package cvprac contains api and client for connecting and interacting with
-// Cloud Vision Protocol
 package cvprac
 
-// Version contains the latest build version for go-cvprac
-const Version string = "v0.1.0-7-g7181355"
+const Version string = "v0.2.0"
