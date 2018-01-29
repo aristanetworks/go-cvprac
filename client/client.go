@@ -39,12 +39,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
+
 	cvprac "github.com/aristanetworks/go-cvprac"
 	"github.com/aristanetworks/go-cvprac/api"
 
 	"net/http"
 
-	resty "gopkg.in/resty.v0"
+	resty "gopkg.in/resty.v1"
 )
 
 // NumRetryRequests specifies the number for retries to attempt
@@ -84,7 +86,7 @@ func Hosts(hosts ...string) Option {
 	return func(c *CvpClient) error {
 		var err error
 		if len(hosts) <= 0 {
-			return fmt.Errorf("Must define at least one host.")
+			return errors.New("Must define at least one host")
 		}
 		c.Hosts = hosts
 		c.HostPool, err = NewHostIterator(c.Hosts)
@@ -99,7 +101,7 @@ func Hosts(hosts ...string) Option {
 func Port(port int) Option {
 	return func(c *CvpClient) error {
 		if port <= 0 {
-			return fmt.Errorf("Invalid port number '%d'.", port)
+			return errors.Errorf("Invalid port number [%d]", port)
 		}
 		c.Port = port
 		return nil
@@ -113,7 +115,7 @@ func Protocol(proto string) Option {
 		case "http":
 		case "https":
 		default:
-			return fmt.Errorf("Invalid protocol '%s'.", proto)
+			return errors.Errorf("Invalid protocol [%s]", proto)
 		}
 		c.Protocol = proto
 		return nil
@@ -124,7 +126,7 @@ func Protocol(proto string) Option {
 func ConnectTimeout(timeout int) Option {
 	return func(c *CvpClient) error {
 		if timeout < 0 {
-			return fmt.Errorf("Timeout (seconds) must be >= 0.")
+			return errors.New("Timeout (seconds) must be >= 0")
 		}
 		c.Timeout = time.Duration(timeout) * time.Second
 		return nil
@@ -199,6 +201,9 @@ func NewCvpClient(options ...Option) (*CvpClient, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	c.Client = resty.New().SetHeaders(headers)
+
 	c.API = cvpapi.NewCvpRestAPI(c)
 
 	return c, nil
@@ -212,7 +217,7 @@ func (c *CvpClient) GetSessionID() string {
 func (c *CvpClient) initSession(host string) error {
 	var port int
 
-	c.Client = resty.New().SetHeaders(c.Headers)
+	c.Client.SetHeaders(c.Headers)
 
 	if c.Protocol == "https" {
 		port = 443
@@ -262,16 +267,12 @@ func (c *CvpClient) createSession(allNodes bool) error {
 			return nil
 		}
 	}
-	c.Client = nil
-	return fmt.Errorf("%s", strings.Join(errorMsg, "\n"))
+	return errors.New(strings.Join(errorMsg, "\n"))
 }
 
 func (c *CvpClient) login() error {
 	var loginResp cvpapi.LoginResp
 
-	if c.Client == nil {
-		return fmt.Errorf("login: No valid session to CVP node")
-	}
 	c.SessID = ""
 	request := c.Client.R()
 
@@ -280,15 +281,15 @@ func (c *CvpClient) login() error {
 
 	resp, err := request.SetBody(auth).Post("/login/authenticate.do")
 	if err != nil {
-		return fmt.Errorf("login: %s", err)
+		return errors.Wrapf(err, "login")
 	}
 
 	if err = checkResponse(resp); err != nil {
-		return fmt.Errorf("login: %s", err)
+		return errors.Wrapf(err, "checkResponse failed")
 	}
 
 	if err = json.Unmarshal(resp.Body(), &loginResp); err != nil {
-		return fmt.Errorf("login: %s", err)
+		return errors.Wrapf(err, "unmarshal failed")
 	}
 	c.SessID = loginResp.SessionID
 
@@ -302,10 +303,6 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 	var retryCnt int
 
 	retryCnt = NumRetryRequests
-
-	if c.Client == nil {
-		return nil, fmt.Errorf("makeRequest: No valid session to CVP node")
-	}
 
 	request := c.Client.R()
 
@@ -329,11 +326,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 			}
 			// Not the first time through the loop. Retrying request so
 			// create a session to another CVP node...but exclude this one.
-			c.createSession(false)
-
-			// Verify that we can connect to at least one node
-			// otherwise raise the last error
-			if c.Client == nil {
+			if err := c.createSession(false); err != nil {
 				return nil, err
 			}
 			retryCnt = NumRetryRequests
@@ -347,7 +340,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		case "POST":
 			resp, err = request.SetBody(data).Post(url)
 		default:
-			return nil, fmt.Errorf("Invalid. Request type '%s' not implemented.", reqType)
+			return nil, errors.Errorf("Invalid. Request type [%s] not implemented", reqType)
 		}
 
 		if err != nil {
@@ -356,7 +349,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		// Underlying request issue. Could be getsockopt error (like network not reachable)
 		if resp.RawResponse == nil {
 			// retry another session
-			err = fmt.Errorf("RawResponse error")
+			err = errors.New("RawResponse error")
 			continue
 		}
 
@@ -364,25 +357,25 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 
 		if status == 301 {
 			// retry another session
-			err = fmt.Errorf("Status: %d", status)
+			err = errors.Errorf("Status: %d", status)
 			continue
 		}
 		// client error
 		if status >= 400 && status < 500 {
 			// retry another session
-			err = fmt.Errorf("Status: %d", status)
+			err = errors.Errorf("Status: %d", status)
 			continue
 		}
 		// server error
 		if status >= 500 && status < 600 {
 			// retry another session
-			err = fmt.Errorf("Status: %d", status)
+			err = errors.Errorf("Status: %d", status)
 			continue
 		}
 
 		var info cvpapi.ErrorResponse
 		if err = json.Unmarshal(resp.Body(), &info); err != nil {
-			return nil, fmt.Errorf("%s", err)
+			return nil, errors.Wrap(err, "unmarshal failed")
 		}
 
 		// check and see if we have a CVP error payload
@@ -419,8 +412,8 @@ func parseURLValues(params *url.Values) (map[string]string, error) {
 	newMap := make(map[string]string)
 	for k, v := range *params {
 		if len(v) > 1 {
-			return nil, fmt.Errorf("Parsing URL Values: Multiple values for param %s. Values: %v",
-				k, v)
+			return nil, errors.Errorf("Parsing URL Values: Multiple values for "+
+				"param %s. Values: %v", k, v)
 		}
 		newMap[k] = params.Get(k)
 	}
@@ -431,22 +424,22 @@ func checkResponse(resp *resty.Response) error {
 	// Underlying request issue. Could be getsockopt error (like network not reachable)
 	if resp.RawResponse == nil {
 		// retry another session
-		return fmt.Errorf("RawResponse error")
+		return errors.New("RawResponse error")
 	}
 
 	status := resp.StatusCode()
 
 	if status != http.StatusOK {
-		return fmt.Errorf("Status: %s, StatusCode: %d", resp.Status(), status)
+		return errors.Errorf("checkResponse Status: %s, StatusCode: %d", resp.Status(), status)
 	}
 
 	var info cvpapi.ErrorResponse
 	if err := json.Unmarshal(resp.Body(), &info); err != nil {
-		return fmt.Errorf("checkResponse: %s", err)
+		return errors.Wrapf(err, "checkResponse unmarshal error")
 	}
 
 	if err := info.Error(); err != nil {
-		return fmt.Errorf("Request error: %s", err)
+		return errors.Wrapf(err, "checkResponse Request error")
 	}
 	return nil
 }

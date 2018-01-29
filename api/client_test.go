@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"time"
 
-	resty "gopkg.in/resty.v0"
+	resty "gopkg.in/resty.v1"
 )
 
 // MockClient is made up of a mock response or error

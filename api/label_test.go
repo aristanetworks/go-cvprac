@@ -29,48 +29,53 @@
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
-package client
+package cvpapi
 
-import "github.com/pkg/errors"
+import (
+	"errors"
+	"testing"
+)
 
-const initVal = -1
+func Test_CvpGetLabelsRetError_UnitTest(t *testing.T) {
+	clientErr := errors.New("Client error")
+	expectedErr := errors.New("GetLabels: Client error")
 
-// HostIterator implements an itorator for a list of hostnames/ips
-type HostIterator struct {
-	current int
-	hosts   []string
+	client := NewMockClient("", clientErr)
+	api := NewCvpRestAPI(client)
+
+	_, err := api.GetLabels("LABEL", "CUSTOM", "", 0, 0)
+	assert(t, err.Error() == expectedErr.Error(),
+		"Expected Client error: [%v] Got: [%v]", expectedErr, err)
 }
 
-// Value returns the value for the current entry
-func (h *HostIterator) Value() string {
-	return h.hosts[h.current]
+func Test_CvpGetLabelJsonError_UnitTest(t *testing.T) {
+	client := NewMockClient("{", nil)
+	api := NewCvpRestAPI(client)
+	_, err := api.GetLabels("LABEL", "CUSTOM", "", 0, 0)
+	assert(t, err != nil, "JSON unmarshal error should be returned")
 }
 
-// Next returns true if there is another element
-// to iterate. False if we reach the end of the list
-func (h *HostIterator) Next() bool {
-	h.current++
-	if h.current >= len(h.hosts) {
-		h.current = initVal
-		return false
-	}
-	return true
+func Test_CvpGetLabelsEmptyJsonError_UnitTest(t *testing.T) {
+	client := NewMockClient("", nil)
+	api := NewCvpRestAPI(client)
+	_, err := api.GetLabels("LABEL", "CUSTOM", "", 0, 0)
+	assert(t, err != nil, "JSON unmarshal error should be returned")
 }
 
-// Cycle returns the next host in the list. If we've exceeded the
-// length of the list, then circle back to the first.
-func (h *HostIterator) Cycle() string {
-	h.current++
-	if h.current >= len(h.hosts) {
-		h.current = 0
-	}
-	return h.hosts[h.current]
+func Test_CvpGetLabelsReturnError_UnitTest(t *testing.T) {
+	respStr := `{"errorCode": "112498",
+  				 "errorMessage": "Unauthorized User"}`
+
+	client := NewMockClient(respStr, nil)
+	api := NewCvpRestAPI(client)
+	_, err := api.GetLabels("LABEL", "CUSTOM", "", 0, 0)
+	assert(t, err != nil, "Error should be returned")
 }
 
-// NewHostIterator inits an itorator for host list
-func NewHostIterator(hosts []string) (*HostIterator, error) {
-	if len(hosts) == 0 {
-		return nil, errors.New("Can not iterate over empty list")
-	}
-	return &HostIterator{hosts: hosts, current: initVal}, nil
+func Test_CvpGetLabelValid_UnitTest(t *testing.T) {
+	client := NewMockClient("{}", nil)
+	api := NewCvpRestAPI(client)
+
+	_, err := api.GetLabels("LABEL", "CUSTOM", "", 0, 0)
+	assert(t, err == nil, "Valid case failed with error: %v", err)
 }

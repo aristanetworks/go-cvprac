@@ -40,10 +40,13 @@ type ErrorResponse struct {
 }
 
 // Error returns error
-func (e ErrorResponse) Error() error {
+func (e *ErrorResponse) Error() error {
 	if e.ErrorCode != "" || e.ErrorMessage != "" {
-		return fmt.Errorf("ErrorCode: %s, ErrorMessage:\"%s\"\n",
-			e.ErrorCode, e.ErrorMessage)
+		return fmt.Errorf("%s", e)
 	}
 	return nil
+}
+
+func (e *ErrorResponse) String() string {
+	return fmt.Sprintf("[%s] %s", e.ErrorCode, e.ErrorMessage)
 }

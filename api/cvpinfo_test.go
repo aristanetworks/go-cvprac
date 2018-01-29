@@ -46,7 +46,7 @@ func Test_CvpInfoRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetCvpInfo()
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }

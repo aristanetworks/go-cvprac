@@ -33,7 +33,6 @@ package cvpapi
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 )
 
@@ -45,8 +44,8 @@ func Test_CvpGetConfigletByNameRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetConfigletByName("configletname")
-	if !reflect.DeepEqual(err, expectedErr) {
-		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
+	if err.Error() != expectedErr.Error() {
+		t.Fatalf("Expected Client error: [%v] Got: [%v]", expectedErr, err)
 	}
 }
 
@@ -97,7 +96,7 @@ func Test_CvpGetAllConfigletHistoryRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetAllConfigletHistory("configletname")
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -149,7 +148,7 @@ func Test_CvpAddConfigletRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	_, err := api.AddConfiglet("configletname", "config string")
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -201,7 +200,7 @@ func Test_CvpDeleteConfigletRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	err := api.DeleteConfiglet("configletname", "key")
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }
@@ -253,7 +252,7 @@ func Test_CvpUpdateConfigletRetError_UnitTest(t *testing.T) {
 	api := NewCvpRestAPI(client)
 
 	err := api.UpdateConfiglet("config", "name", "key")
-	if !reflect.DeepEqual(err, expectedErr) {
+	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
 }

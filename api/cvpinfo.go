@@ -33,7 +33,8 @@ package cvpapi
 
 import (
 	"encoding/json"
-	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 // CvpInfo represents Cvp specific information
@@ -52,11 +53,11 @@ func (c CvpRestAPI) GetCvpInfo() (*CvpInfo, error) {
 
 	resp, err := c.client.Get("/cvpInfo/getCvpInfo.do", nil)
 	if err != nil {
-		return nil, fmt.Errorf("GetCvpInfo: %s", err)
+		return nil, errors.Errorf("GetCvpInfo: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, fmt.Errorf("GetCvpInfo: %s", err)
+		return nil, errors.Errorf("GetCvpInfo: %s", err)
 	}
 
 	return &info, nil

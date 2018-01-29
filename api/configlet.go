@@ -33,11 +33,13 @@ package cvpapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
+// ConfigletList represents a list of configlets
 type ConfigletList struct {
 	Total int         `json:"total"`
 	Data  []Configlet `json:"data"`
@@ -108,11 +110,11 @@ func (c CvpRestAPI) GetConfigletByName(name string) (*Configlet, error) {
 
 	resp, err := c.client.Get("/configlet/getConfigletByName.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("GetConfigletByName: %s", err)
+		return nil, errors.Errorf("GetConfigletByName: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, fmt.Errorf("GetConfigletByName: %s", err)
+		return nil, errors.Errorf("GetConfigletByName: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
@@ -120,7 +122,7 @@ func (c CvpRestAPI) GetConfigletByName(name string) (*Configlet, error) {
 		if info.ErrorCode == "132801" {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("GetConfigletByName: %s", err)
+		return nil, errors.Errorf("GetConfigletByName: %s", err)
 	}
 	return &info, nil
 }
@@ -141,15 +143,15 @@ func (c CvpRestAPI) GetConfigletHistory(key string, start int,
 
 	resp, err := c.client.Get("/configlet/getConfigletHistory.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("GetConfigletHistory: %s", err)
+		return nil, errors.Errorf("GetConfigletHistory: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, fmt.Errorf("GetConfigletHistory: %s", err)
+		return nil, errors.Errorf("GetConfigletHistory: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
-		return nil, fmt.Errorf("GetConfigletHistory: %s", err)
+		return nil, errors.Errorf("GetConfigletHistory: %s", err)
 	}
 
 	return &info, nil
@@ -171,15 +173,15 @@ func (c CvpRestAPI) AddConfiglet(name string, config string) (*Configlet, error)
 
 	resp, err := c.client.Post("/configlet/addConfiglet.do", nil, data)
 	if err != nil {
-		return nil, fmt.Errorf("AddConfiglet: %s", err)
+		return nil, errors.Errorf("AddConfiglet: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, fmt.Errorf("AddConfiglet: %s", err)
+		return nil, errors.Errorf("AddConfiglet: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
-		return nil, fmt.Errorf("AddConfiglet: %s", err)
+		return nil, errors.Errorf("AddConfiglet: %s", err)
 	}
 
 	return &info.Data, nil
@@ -197,15 +199,15 @@ func (c CvpRestAPI) DeleteConfiglet(name string, key string) error {
 	}
 	resp, err := c.client.Post("/configlet/deleteConfiglet.do", nil, data)
 	if err != nil {
-		return fmt.Errorf("DeleteConfiglet: %s", err)
+		return errors.Errorf("DeleteConfiglet: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return fmt.Errorf("DeleteConfiglet: %s", err)
+		return errors.Errorf("DeleteConfiglet: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
-		return fmt.Errorf("DeleteConfiglet: %s", err)
+		return errors.Errorf("DeleteConfiglet: %s", err)
 	}
 
 	return nil
@@ -223,22 +225,23 @@ func (c CvpRestAPI) UpdateConfiglet(config string, name string, key string) erro
 
 	resp, err := c.client.Post("/configlet/updateConfiglet.do", nil, data)
 	if err != nil {
-		return fmt.Errorf("UpdateConfiglet: %s", err)
+		return errors.Errorf("UpdateConfiglet: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return fmt.Errorf("UpdateConfiglet: %s", err)
+		return errors.Errorf("UpdateConfiglet: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
-		return fmt.Errorf("UpdateConfiglet: %s", err)
+		return errors.Errorf("UpdateConfiglet: %s", err)
 	}
 
 	return nil
 }
 
 // SearchConfigletsWithRange search function for configlets.
-func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int, end int) (*ConfigletList, error) {
+func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int,
+	end int) (*ConfigletList, error) {
 	var info ConfigletList
 
 	//queryparam := url.Values{"name": {key},}
@@ -251,15 +254,15 @@ func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int, end i
 
 	resp, err := c.client.Get("/configlet/searchConfiglets.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("SearchConfiglets: %s", err)
+		return nil, errors.Errorf("SearchConfiglets: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, fmt.Errorf("SearchConfiglets: %s", err)
+		return nil, errors.Errorf("SearchConfiglets: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
-		return nil, fmt.Errorf("SearchConfiglets: %s", err)
+		return nil, errors.Errorf("SearchConfiglets: %s", err)
 	}
 
 	return &info, nil

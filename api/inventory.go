@@ -33,9 +33,10 @@ package cvpapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"strconv"
+
+	"github.com/pkg/errors"
 )
 
 // NetElement represents a CVP network element returned as part of
@@ -68,6 +69,8 @@ type NetElement struct {
 	DeviceInfo           string       `json:"deviceInfo"`
 	DeviceStatus         string       `json:"deviceStatus"`
 	ParentContainerID    string       `json:"parentContainerId"`
+
+	ErrorResponse
 }
 
 // TempAction is
@@ -146,16 +149,16 @@ func (c CvpRestAPI) GetInventory(querystr string, start int, end int) (*CvpInven
 
 	resp, err := c.client.Get("/inventory/getInventory.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("GetInventory: %s", err)
+		return nil, errors.Errorf("GetInventory: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, fmt.Errorf("GetInventory: %s", err)
+		return nil, errors.Errorf("GetInventory: %s", err)
 
 	}
 
 	if err := info.Error(); err != nil {
-		return nil, fmt.Errorf("GetInventory: %s", err)
+		return nil, errors.Errorf("GetInventory: %s", err)
 	}
 
 	return &info, nil
@@ -165,7 +168,7 @@ func (c CvpRestAPI) GetInventory(querystr string, start int, end int) (*CvpInven
 func (c CvpRestAPI) GetAllDevices() ([]NetElement, error) {
 	data, err := c.GetInventory("", 0, 0)
 	if err != nil {
-		return nil, fmt.Errorf("GetAllDevices: %s", err)
+		return nil, errors.Errorf("GetAllDevices: %s", err)
 	}
 	if len(data.NetElementList) > 0 {
 		return data.NetElementList, nil
@@ -177,26 +180,40 @@ func (c CvpRestAPI) GetAllDevices() ([]NetElement, error) {
 func (c CvpRestAPI) GetDeviceByName(fqdn string) (*NetElement, error) {
 	data, err := c.GetInventory(fqdn, 0, 0)
 	if err != nil {
-		return nil, fmt.Errorf("GetDeviceByName: %s", err)
+		return nil, errors.Errorf("GetDeviceByName: %s", err)
 	}
 
-	if len(data.NetElementList) > 0 {
-		return &data.NetElementList[0], nil
+	for idx, device := range data.NetElementList {
+		if device.Fqdn == fqdn {
+			return &data.NetElementList[idx], nil
+		}
 	}
 	return nil, nil
 }
 
 // GetDevicesInContainer returns a CvpInventoryList based on container name provided
 func (c CvpRestAPI) GetDevicesInContainer(name string) ([]NetElement, error) {
-	data, err := c.GetInventory(name, 0, 0)
+	containerInfo, err := c.GetContainerByName(name)
 	if err != nil {
-		return nil, fmt.Errorf("GetDevicesInContainer: %s", err)
+		return nil, errors.Errorf("GetDevicesInContainer: %s", err)
+	} else if containerInfo == nil {
+		return nil, nil
 	}
 
-	if len(data.NetElementList) > 0 {
-		return data.NetElementList, nil
+	data, err := c.GetAllDevices()
+	if err != nil {
+		return nil, errors.Errorf("GetDevicesInContainer: %s", err)
+	} else if data == nil {
+		return nil, nil
 	}
-	return nil, nil
+
+	var netElements []NetElement
+	for idx, ele := range data {
+		if ele.ParentContainerID == containerInfo.Key {
+			netElements = append(netElements, data[idx])
+		}
+	}
+	return netElements, nil
 }
 
 // GetUndefinedDevices returns a NetElement list of devices within the Undefined container
@@ -205,7 +222,7 @@ func (c CvpRestAPI) GetUndefinedDevices() ([]NetElement, error) {
 
 	data, err := c.GetInventory("undefined", 0, 0)
 	if err != nil {
-		return nil, fmt.Errorf("GetUndefinedDevices: %s", err)
+		return nil, errors.Errorf("GetUndefinedDevices: %s", err)
 	}
 
 	numElements := len(data.NetElementList)
@@ -220,6 +237,32 @@ func (c CvpRestAPI) GetUndefinedDevices() ([]NetElement, error) {
 		}
 	}
 	return res, nil
+}
+
+// GetDeviceContainer returns a Container this device is allocated to
+func (c CvpRestAPI) GetDeviceContainer(fqdn string) (*Container, error) {
+	data, err := c.GetInventory(fqdn, 0, 0)
+	if err != nil {
+		return nil, errors.Errorf("GetDeviceContainer: %s", err)
+	}
+
+	if len(data.NetElementList) == 0 {
+		return nil, nil
+	}
+
+	var deviceKey string
+	for _, device := range data.NetElementList {
+		if device.Fqdn == fqdn {
+			deviceKey = device.Key
+			break
+		}
+	}
+
+	containerName, found := data.ContainerList[deviceKey]
+	if !found {
+		return nil, errors.Errorf("Device [%s] not of any Container", fqdn)
+	}
+	return c.GetContainerByName(containerName)
 }
 
 // Container is
@@ -254,15 +297,15 @@ func (c CvpRestAPI) GetContainer(querystr string, start int, end int) (*Containe
 
 	resp, err := c.client.Get("/inventory/add/searchContainers.do", query)
 	if err != nil {
-		return nil, fmt.Errorf("GetContainer: %s", err)
+		return nil, errors.Errorf("GetContainer: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, fmt.Errorf("GetContainer: %s", err)
+		return nil, errors.Errorf("GetContainer: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
-		return nil, fmt.Errorf("GetContainer: %s", err)
+		return nil, errors.Errorf("GetContainer: %s", err)
 	}
 	return &info, nil
 }
@@ -276,13 +319,11 @@ func (c CvpRestAPI) GetAllContainers() (*ContainerList, error) {
 func (c CvpRestAPI) GetContainerByName(name string) (*Container, error) {
 	data, err := c.GetContainer(name, 0, 0)
 	if err != nil {
-		return nil, fmt.Errorf("GetContainerByName: %s", err)
+		return nil, errors.Errorf("GetContainerByName: %s", err)
 	}
-	if data.Total > 0 {
-		for _, cont := range data.ContainerList {
-			if cont.Name == name {
-				return &cont, nil
-			}
+	for _, cont := range data.ContainerList {
+		if cont.Name == name {
+			return &cont, nil
 		}
 	}
 	return nil, nil
