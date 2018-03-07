@@ -695,6 +695,7 @@ type ImageInfo struct {
 	IsRebootRequired         string `json:"isRebootRequired"`
 	Key                      string `json:"key"`
 	MD5                      string `json:"md5"`
+	SHA512                   string `json:"sha512"`
 	Name                     string `json:"name"`
 	SwiMaxHwepoch            string `json:"swiMaxHwepoch"`
 	SwiVarient               string `json:"swiVarient"`
@@ -762,6 +763,21 @@ func (c CvpRestAPI) GetImages(querystr string, start int, end int) ([]ImageInfo,
 		return nil, errors.Errorf("GetImages: %s", err)
 	}
 	return resp.Data, nil
+}
+
+// GetImageByName returns an ImageInfo object based on name provided
+func (c CvpRestAPI) GetImageByName(name string) (*ImageInfo, error) {
+	resp, err := c.GetImages(name, 0, 0)
+	if err != nil {
+		return nil, errors.Errorf("GetImageByName: %s", err)
+	}
+
+	for _, image := range resp {
+		if image.Name == name {
+			return &image, nil
+		}
+	}
+	return nil, nil
 }
 
 // GetImageBundles returns a list of ImageBundles based on a specific query string and range
