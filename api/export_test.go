@@ -171,7 +171,7 @@ func TestMain(m *testing.M) {
 	// verify we have at least one device in inventory
 	inventory, err := api.GetAllDevices()
 	if err != nil || len(inventory) == 0 {
-		log.Fatal(err)
+		log.Fatalf("No devices found. Error: %v", err)
 	}
 
 	// Get our device
