@@ -370,7 +370,7 @@ func (c CvpRestAPI) AddToInventory(deviceIPAddress, parentContainerName,
 		"endIndex":   {"0"},
 	}
 
-	var containerList []interface{}
+	containerList := []interface{}{}
 
 	data := struct {
 		Data []map[string]interface{} `json:"data"`
