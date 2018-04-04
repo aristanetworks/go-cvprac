@@ -328,3 +328,82 @@ func (c CvpRestAPI) GetContainerByName(name string) (*Container, error) {
 	}
 	return nil, nil
 }
+
+// GetNonConnectedDeviceCount returns number of devices not connected
+func (c CvpRestAPI) GetNonConnectedDeviceCount() (int, error) {
+	resp, err := c.client.Get("/inventory/add/getNonConnectedDeviceCount.do", nil)
+	if err != nil {
+		return -1, errors.Errorf("GetNonConnectedDeviceCount: %s", err)
+	}
+
+	info := struct {
+		Data int `json:"data"`
+		ErrorResponse
+	}{}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return -1, errors.Errorf("GetNonConnectedDeviceCount: %s", err)
+	}
+
+	if err := info.Error(); err != nil {
+		return -1, errors.Errorf("GetNonConnectedDeviceCount: %s", err)
+	}
+
+	return info.Data, nil
+}
+
+// SaveInventory saves the current CVP inventory
+func (c CvpRestAPI) SaveInventory() error {
+	_, err := c.client.Post("/inventory/v2/saveInventory.do", nil, []string{})
+	if err != nil {
+		return errors.Errorf("SaveInventory: %s", err)
+	}
+	return nil
+}
+
+// AddToInventory Add device to the Cvp inventory. Warning -- Method doesn't check the
+// existance of the parent container
+func (c CvpRestAPI) AddToInventory(deviceIPAddress, parentContainerName,
+	parentContainerID string) error {
+	urlParams := &url.Values{
+		"startIndex": {"0"},
+		"endIndex":   {"0"},
+	}
+
+	var containerList []interface{}
+
+	data := struct {
+		Data []map[string]interface{} `json:"data"`
+	}{
+		Data: []map[string]interface{}{
+			map[string]interface{}{
+				"containerName": parentContainerName,
+				"containerId":   parentContainerID,
+				"containerType": "Existing",
+				"ipAddress":     deviceIPAddress,
+				"containerList": containerList,
+			},
+		},
+	}
+
+	_, err := c.client.Post("/inventory/add/addToInventory.do", urlParams, data)
+	return errors.Wrapf(err, "AddToInventor:")
+}
+
+// DeleteDevice Remove device from the Cvp inventory
+func (c CvpRestAPI) DeleteDevice(deviceMac string) error {
+	err := c.DeleteDevices([]string{deviceMac})
+	return errors.Wrapf(err, "DeleteDevice:")
+}
+
+// DeleteDevices Remove devices from the Cvp inventory
+func (c CvpRestAPI) DeleteDevices(deviceMacs []string) error {
+	data := struct {
+		Data []string `json:"data"`
+	}{
+		Data: deviceMacs,
+	}
+
+	_, err := c.client.Post("/inventory/deleteDevices.do", nil, data)
+	return errors.Wrapf(err, "DeleteDevices:")
+}
