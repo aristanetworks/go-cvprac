@@ -131,6 +131,26 @@ type CvpInventoryList struct {
 	ErrorResponse
 }
 
+// SaveInventoryResp is the response returned for saveInventory API call
+type SaveInventoryResp struct {
+	Data SaveInventoryData `json:"data"`
+	ErrorResponse
+}
+
+// SaveInventoryData relates to saveInventory status
+type SaveInventoryData struct {
+	Total                            string `json:"total"`
+	UpgradeRequired                  string `json:"Upgrade required"`
+	InvalidContainer                 string `json:"Invalid-Container"`
+	Connected                        string `json:"Connected"`
+	RegistrationInProcessByOtherUser string `json:"Registration in process by other user"`
+	Duplicate                        string `json:"Duplicate"`
+	Retry                            string `json:"Retry"`
+	UnauthorizedAccess               string `json:"Unauthorized access"`
+	Message                          string `json:"message"`
+	Connecting                       string `json:"Connecting"`
+}
+
 // GetInventory returns a CvpInventoryList based on a provided query and range.
 //
 // Failed search returns empty
@@ -353,12 +373,23 @@ func (c CvpRestAPI) GetNonConnectedDeviceCount() (int, error) {
 }
 
 // SaveInventory saves the current CVP inventory
-func (c CvpRestAPI) SaveInventory() error {
-	_, err := c.client.Post("/inventory/v2/saveInventory.do", nil, []string{})
+func (c CvpRestAPI) SaveInventory() (*SaveInventoryData, error) {
+	var info SaveInventoryResp
+
+	resp, err := c.client.Post("/inventory/v2/saveInventory.do", nil, []string{})
 	if err != nil {
-		return errors.Errorf("SaveInventory: %s", err)
+		return nil, errors.Errorf("SaveInventory: %s", err)
 	}
-	return nil
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return nil, errors.Errorf("GetNonConnectedDeviceCount: %s", err)
+	}
+
+	if err := info.Error(); err != nil {
+		return nil, errors.Errorf("GetNonConnectedDeviceCount: %s", err)
+	}
+
+	return &info.Data, nil
 }
 
 // AddToInventory Add device to the Cvp inventory. Warning -- Method doesn't check the

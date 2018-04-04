@@ -75,7 +75,7 @@ func main() {
 		log.Printf("%d\n", i)
 	}
 
-	if err := cvpClient.API.SaveInventory(); err != nil {
+	if _, err := cvpClient.API.SaveInventory(); err != nil {
 		log.Fatalf("Failed to Save: %s", err)
 	}
 
