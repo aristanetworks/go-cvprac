@@ -658,7 +658,6 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 
 	data := &ActionRequest{Data: []Action{
 		Action{
-			ID:          1,
 			Info:        msg,
 			InfoPreview: msg,
 			Action:      "update",
@@ -880,7 +879,6 @@ func (c CvpRestAPI) ApplyImageToDevice(imageInfo *ImageBundleInfo, netElement *N
 
 	data := &ActionRequest{Data: []Action{
 		Action{
-			ID:          1,
 			Info:        msg,
 			InfoPreview: msg,
 			Note:        "",
