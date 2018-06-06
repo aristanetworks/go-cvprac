@@ -260,8 +260,8 @@ func (c CvpRestAPI) GetUndefinedDevices() ([]NetElement, error) {
 }
 
 // GetDeviceContainer returns a Container this device is allocated to
-func (c CvpRestAPI) GetDeviceContainer(fqdn string) (*Container, error) {
-	data, err := c.GetInventory(fqdn, 0, 0)
+func (c CvpRestAPI) GetDeviceContainer(mac string) (*Container, error) {
+	data, err := c.GetInventory(mac, 0, 0)
 	if err != nil {
 		return nil, errors.Errorf("GetDeviceContainer: %s", err)
 	}
@@ -272,7 +272,7 @@ func (c CvpRestAPI) GetDeviceContainer(fqdn string) (*Container, error) {
 
 	var deviceKey string
 	for _, device := range data.NetElementList {
-		if device.Fqdn == fqdn {
+		if device.SystemMacAddress == mac {
 			deviceKey = device.Key
 			break
 		}
@@ -280,7 +280,7 @@ func (c CvpRestAPI) GetDeviceContainer(fqdn string) (*Container, error) {
 
 	containerName, found := data.ContainerList[deviceKey]
 	if !found {
-		return nil, errors.Errorf("Device [%s] not of any Container", fqdn)
+		return nil, errors.Errorf("Device [%s] not of any Container", mac)
 	}
 	return c.GetContainerByName(containerName)
 }
