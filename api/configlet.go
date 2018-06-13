@@ -33,8 +33,10 @@ package cvpapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -100,6 +102,32 @@ type ConfigletOpReturn struct {
 	Data Configlet `json:"data"`
 
 	ErrorResponse
+}
+
+// ConfigletVerifyResp represents
+type ConfigletVerifyResp struct {
+	ID      string `json:"id,omitempty"`
+	JSONRPC string `json:"jsonrpc,omitempty"`
+	Result  []struct {
+		Output   string   `json:"output"`
+		Messages []string `json:"messages,omitempty"`
+	} `json:"result"`
+	Warnings     []VerifyWarning `json:"warnings"`
+	WarningCount int             `json:"warningCount"`
+	Errors       []VerifyError   `json:"errors,omitempty"`
+	ErrorCount   int             `json:"errorCount,omitempty"`
+}
+
+// VerifyWarning represents a warning related to verification of a config
+type VerifyWarning struct {
+	LineNo  string `json:"lineNo"`
+	Warning string `json:"warning"`
+}
+
+// VerifyError represents an error related to verification of a config
+type VerifyError struct {
+	LineNo string `json:"lineNo"`
+	Error  string `json:"error"`
 }
 
 // GetConfigletByName returns the configlet with the specified name
@@ -236,6 +264,62 @@ func (c CvpRestAPI) UpdateConfiglet(config string, name string, key string) erro
 		return errors.Errorf("UpdateConfiglet: %s", err)
 	}
 
+	return nil
+}
+
+// AddConfigletNote creates/adds a configlet note
+func (c CvpRestAPI) AddConfigletNote(key string, note string) error {
+	data := map[string]string{
+		"key":  key,
+		"note": note,
+	}
+
+	resp, err := c.client.Post("/configlet/addNoteToConfiglet.do", nil, data)
+	if err != nil {
+		return errors.Errorf("AddConfigletNote: %s", err)
+	}
+
+	info := struct {
+		Data string `json:"data"`
+
+		ErrorResponse
+	}{}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return errors.Errorf("AddConfigletNote: %s", err)
+	}
+
+	if err := info.Error(); err != nil {
+		return errors.Errorf("AddConfigletNote: %s", err)
+	}
+
+	return nil
+}
+
+// VerifyConfig verifies a configlet config config
+func (c CvpRestAPI) VerifyConfig(netElement string, config string) error {
+	var info ConfigletVerifyResp
+	data := map[string]string{
+		"config":       config,
+		"netElementId": netElement,
+	}
+
+	resp, err := c.client.Post("/configlet/validateConfig.do", nil, data)
+	if err != nil {
+		return errors.Errorf("VerifyConfig: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return errors.Errorf("VerifyConfig: %s", err)
+	}
+
+	if info.ErrorCount != 0 {
+		var msg []string
+		for _, e := range info.Errors {
+			msg = append(msg, fmt.Sprintf("LineNo:%s - [%s]", e.LineNo, e.Error))
+		}
+		return errors.Errorf("%s", strings.Join(msg, ", "))
+	}
 	return nil
 }
 
