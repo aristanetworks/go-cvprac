@@ -650,6 +650,10 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 		if err != nil {
 			return nil, errors.Errorf("MoveDeviceToContainer: %s", err)
 		}
+		if parentCont == nil {
+			return nil, errors.Errorf("MoveDeviceToContainer: No parent container found for "+
+				"device [%s]", device.SystemMacAddress)
+		}
 		fromID = parentCont.Key
 	}
 
