@@ -131,6 +131,14 @@ type CvpInventoryList struct {
 	ErrorResponse
 }
 
+// CvpInventoryConfiguration is the config and warnings for a device
+type CvpInventoryConfiguration struct {
+	Output   string   `json:"output"`
+	Warnings []string `json:"warnings"`
+
+	ErrorResponse
+}
+
 // SaveInventoryResp is the response returned for saveInventory API call
 type SaveInventoryResp struct {
 	Data SaveInventoryData `json:"data"`
@@ -179,6 +187,37 @@ func (c CvpRestAPI) GetInventory(querystr string, start int, end int) (*CvpInven
 
 	if err := info.Error(); err != nil {
 		return nil, errors.Errorf("GetInventory: %s", err)
+	}
+
+	return &info, nil
+}
+
+// GetInventoryConfiguration returns a CvpInventoryConfiguration based on a provided MAC Address.
+//
+// Failed search returns empty
+// {
+//   "output": "",
+//   "warnings": [],
+// }
+func (c CvpRestAPI) GetInventoryConfiguration(
+	macAddress string) (*CvpInventoryConfiguration, error) {
+	var info CvpInventoryConfiguration
+	query := &url.Values{
+		"netElementId": {macAddress},
+	}
+
+	resp, err := c.client.Get("/inventory/getInventoryConfiguration.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetInventoryConfiguration: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return nil, errors.Errorf("GetInventoryConfiguration: %s", err)
+
+	}
+
+	if err := info.Error(); err != nil {
+		return nil, errors.Errorf("GetInventoryConfiguration: %s", err)
 	}
 
 	return &info, nil
