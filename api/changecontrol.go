@@ -253,7 +253,7 @@ func (c CvpRestAPI) AddNotesToChangeControl(ccID int, notes string) error {
 		"ccId":  strconv.Itoa(ccID),
 		"notes": notes,
 	}
-	resp, err := c.client.Post("/task/addNotesToChangeControl.do", nil, data)
+	resp, err := c.client.Post("/changeControl/addNotesToChangeControl.do", nil, data)
 	if err != nil {
 		return errors.Errorf("AddNotesToChangeControl: %s", err)
 	}
