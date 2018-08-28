@@ -82,15 +82,15 @@ type ChangeControl struct {
 	ScheduledTimestamp    int64  `json:"scheduledTimestamp"`
 	CountryID             string `json:"countryId"`
 	CcID                  string `json:"ccId"`
-	PreSnapshotEndTime    int    `json:"preSnapshotEndTime"`
+	PreSnapshotEndTime    int64  `json:"preSnapshotEndTime"`
 	TaskCount             int    `json:"taskCount"`
 	TaskStartTime         int64  `json:"taskStartTime"`
 	ScheduledBy           string `json:"scheduledBy"`
 	ScheduledByPassword   string `json:"scheduledByPassword"`
 	Type                  string `json:"type"`
 	Status                string `json:"status"`
-	PreSnapshotStartTime  int    `json:"preSnapshotStartTime"`
-	PostSnapshotEndTime   int    `json:"postSnapshotEndTime"`
+	PreSnapshotStartTime  int64  `json:"preSnapshotStartTime"`
+	PostSnapshotEndTime   int64  `json:"postSnapshotEndTime"`
 	CreatedTimestamp      int64  `json:"createdTimestamp"`
 	Key                   string `json:"key"`
 	CcName                string `json:"ccName"`
@@ -101,7 +101,7 @@ type ChangeControl struct {
 	StopOnErrorStatus     string `json:"stopOnErrorStatus"`
 	Notes                 string `json:"notes"`
 	DateTime              string `json:"dateTime"`
-	PostSnapshotStartTime int    `json:"postSnapshotStartTime"`
+	PostSnapshotStartTime int64  `json:"postSnapshotStartTime"`
 	ContainerKey          string `json:"containerKey"`
 	TimeZone              string `json:"timeZone"`
 
