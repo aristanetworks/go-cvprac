@@ -22,8 +22,7 @@ RACE_FLAGS ?= -race -timeout=60s
 GOLDFLAGS := -ldflags="-s -w"
 
 DEFAULT_GOPATH := $${GOPATH%%:*}
-GODEP := godep
-GO := $(GODEP) go
+GO := go
 GOFMT := goimports
 GOLINT := golint
 GO_DEADCODE := deadcode
@@ -40,7 +39,6 @@ endif
 EXTERNAL_TOOLS=\
    github.com/golang/lint/golint \
    github.com/remyoudompheng/go-misc/deadcode \
-   github.com/tools/godep \
    golang.org/x/tools/cmd/godoc \
    golang.org/x/tools/cmd/goimports
 
