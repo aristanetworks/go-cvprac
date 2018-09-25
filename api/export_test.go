@@ -43,11 +43,15 @@ import (
 )
 
 func GetNextTaskID(c *CvpRestAPI) int {
-	tasks, err := c.GetAllTasks()
+	tasks, err := c.GetTasks("", 0, 1)
 	if err != nil {
 		panic(err)
 	}
-	return len(tasks) + 1
+	id, err := strconv.Atoi(tasks[0].WorkOrderID)
+	if err != nil {
+		panic(err)
+	}
+	return id + 1
 }
 
 func monitorTask(c *CvpRestAPI, taskID int, status string) error {
@@ -157,6 +161,7 @@ func TestMain(m *testing.M) {
 	nodeID := config.GetNodeIds()[0]
 	node := config.Nodes[nodeID]
 	testClient := NewRealClient(nodeID, "https", 443)
+	testClient.Client.Debug = *debugFlag
 
 	fmt.Printf("Connecting to %s\n", nodeID)
 	fmt.Printf("Using creds %s/%s for testing\n", node.getUsername(), node.getPassword())
@@ -177,13 +182,23 @@ func TestMain(m *testing.M) {
 	// Get our device
 	dev = &inventory[0]
 
-	devContainer, err = api.GetParentContainerForDevice(dev.Fqdn)
+	devContainer, err = api.GetParentContainerForDevice(dev.SystemMacAddress)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if devContainer == nil {
+		log.Fatalf("Device [%s:%s] not assigned to container", dev.Fqdn, dev.SystemMacAddress)
 	}
 	devConfiglets, err = api.GetConfigletsByDeviceID(dev.SystemMacAddress)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	fmt.Printf("Device:            %s\n", dev.Fqdn)
+	fmt.Printf("Device Container:  %s\n", devContainer.Name)
+	fmt.Printf("Device Configlets: %v\n", devConfiglets)
+	for _, c := range devConfiglets {
+		fmt.Printf("%v\n", c.Type)
 	}
 
 	os.Exit(m.Run())

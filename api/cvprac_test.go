@@ -283,6 +283,7 @@ alias srie show running-config interface ethernet 1`
 	newConfiglet := &Configlet{
 		Name: configlet.Name,
 		Key:  configlet.Key,
+		Type: "Static",
 	}
 
 	taskInfo, err = api.ApplyConfigletToDevice(label, dev, newConfiglet, true)

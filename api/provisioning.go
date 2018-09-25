@@ -1115,7 +1115,8 @@ func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 		case "Builder":
 			builderMap[configlet.Key] = configlet.Name
 		default:
-			return false, nil, nil, errors.Errorf("Invalid Configlet Type [%s]", configlet.Type)
+			return false, nil, nil, errors.Errorf("Configlet [%s] Invalid Type [%s]",
+				configlet.Name, configlet.Type)
 		}
 	}
 
@@ -1140,7 +1141,8 @@ func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 		case "Builder":
 			builderMap[configlet.Key] = configlet.Name
 		default:
-			return false, nil, nil, errors.Errorf("Invalid Configlet Type [%s]", configlet.Type)
+			return false, nil, nil, errors.Errorf("Configlet [%s] Invalid Type [%s]",
+				configlet.Name, configlet.Type)
 		}
 	}
 	return actionReqd, configletMap, builderMap, nil
