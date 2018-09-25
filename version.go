@@ -30,4 +30,4 @@
 //
 package cvprac
 
-const Version string = "v0.3.0"
+const Version string = "v1.0.0"
