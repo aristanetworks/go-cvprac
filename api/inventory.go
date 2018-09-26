@@ -326,35 +326,26 @@ func (c CvpRestAPI) GetDeviceContainer(mac string) (*Container, error) {
 
 // Container is
 type Container struct {
-	ChildContainerID bool   `json:"childContainerId"`
-	FactoryID        int    `json:"factoryId"`
-	ID               int    `json:"id"`
-	Key              string `json:"key"`
-	Name             string `json:"name"`
-	ParentID         string `json:"parentId"`
-	Type             string `json:"type"`
-	UserID           string `json:"userId"`
-}
-
-// ContainerList is a list of NetElements and Containers
-type ContainerList struct {
-	Total         int         `json:"total"`
-	ContainerList []Container `json:"data"`
-
-	ErrorResponse
+	Key       string `json:"Key"`
+	Name      string `json:"Name"`
+	CreatedBy string `json:"CreatedBy"`
+	CreatedOn int64  `json:"CreatedOn"`
+	Mode      string `json:"Mode"`
 }
 
 // GetContainer returns
 // The endpoint searchContainers.do will not return the Undefined_Container in the list
-func (c CvpRestAPI) GetContainer(querystr string, start int, end int) (*ContainerList, error) {
-	var info ContainerList
-	query := &url.Values{
-		"queryparam": {querystr},
-		"startIndex": {strconv.Itoa(start)},
-		"endIndex":   {strconv.Itoa(end)},
+func (c CvpRestAPI) GetContainer(name string) ([]Container, error) {
+	var info []Container
+	var query *url.Values
+
+	if name != "" {
+		query = &url.Values{
+			"name": {name},
+		}
 	}
 
-	resp, err := c.client.Get("/inventory/add/searchContainers.do", query)
+	resp, err := c.client.Get("/inventory/containers", query)
 	if err != nil {
 		return nil, errors.Errorf("GetContainer: %s", err)
 	}
@@ -363,26 +354,23 @@ func (c CvpRestAPI) GetContainer(querystr string, start int, end int) (*Containe
 		return nil, errors.Errorf("GetContainer: %s", err)
 	}
 
-	if err := info.Error(); err != nil {
-		return nil, errors.Errorf("GetContainer: %s", err)
-	}
-	return &info, nil
+	return info, nil
 }
 
 // GetAllContainers returns all current inventory Containers
-func (c CvpRestAPI) GetAllContainers() (*ContainerList, error) {
-	return c.GetContainer("", 0, 0)
+func (c CvpRestAPI) GetAllContainers() ([]Container, error) {
+	return c.GetContainer("")
 }
 
 // GetContainerByName returns a Container
 func (c CvpRestAPI) GetContainerByName(name string) (*Container, error) {
-	data, err := c.GetContainer(name, 0, 0)
+	containers, err := c.GetContainer(name)
 	if err != nil {
 		return nil, errors.Errorf("GetContainerByName: %s", err)
 	}
-	for _, cont := range data.ContainerList {
-		if cont.Name == name {
-			return &cont, nil
+	for _, container := range containers {
+		if container.Name == name {
+			return &container, nil
 		}
 	}
 	return nil, nil

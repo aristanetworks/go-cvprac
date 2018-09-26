@@ -388,8 +388,8 @@ func TestCvpRac_GetAllContainers_SystemTest(t *testing.T) {
 func TestCvpRac_GetValidContainer_SystemTest(t *testing.T) {
 	containers, err := api.GetAllContainers()
 	ok(t, err)
-	if len(containers.ContainerList) > 0 {
-		containerName := containers.ContainerList[0].Name
+	if len(containers) > 0 {
+		containerName := containers[0].Name
 		c, err := api.GetContainerByName(containerName)
 		ok(t, err)
 		assert(t, c.Name == containerName, "Expected: %s, Got: %s", containerName, c.Name)

@@ -55,7 +55,10 @@ lint:
 
 fmtcheck:
 	@if ! which $(GOFMT) >/dev/null; then echo Please install $(GOFMT); exit 1; fi
-	goimports=`$(GOFILES) | xargs $(GOFMT) -l 2>&1`; if test -n "$$goimports"; then echo Check the following files for coding style AND USE goimports; echo "$$goimports"; exit 1; fi
+	goimports=`$(GOFILES) | xargs $(GOFMT) -l 2>&1`; \
+	if test -n "$$goimports"; then echo Check the following files for coding style AND USE goimports; echo "$$goimports"; \
+        if test "$(shell $(GO) version | awk '{ print $$3 }')" != "devel"; then exit 1; fi; \
+    fi
 	$(GOFILES) -exec ./check_line_len.awk {} +
 
 fmt:

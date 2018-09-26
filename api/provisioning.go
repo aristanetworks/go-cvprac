@@ -47,24 +47,24 @@ type ActionRequest struct {
 // Action request structure for saveTopology
 type Action struct {
 	Action                          string   `json:"action"`
-	ConfigletBuilderList            []string `json:"configletBuilderList"`
-	ConfigletBuilderNamesList       []string `json:"configletBuilderNamesList"`
-	ConfigletList                   []string `json:"configletList"`
-	ConfigletNamesList              []string `json:"configletNamesList"`
+	ConfigletBuilderList            []string `json:"configletBuilderList,omitempty"`
+	ConfigletBuilderNamesList       []string `json:"configletBuilderNamesList,omitempty"`
+	ConfigletList                   []string `json:"configletList,omitempty"`
+	ConfigletNamesList              []string `json:"configletNamesList,omitempty"`
 	FromID                          string   `json:"fromId"`
 	FromName                        string   `json:"fromName"`
-	IgnoreConfigletBuilderList      []string `json:"ignoreConfigletBuilderList"`
-	IgnoreConfigletBuilderNamesList []string `json:"ignoreConfigletBuilderNamesList"`
-	IgnoreConfigletList             []string `json:"ignoreConfigletList"`
-	IgnoreConfigletNamesList        []string `json:"ignoreConfigletNamesList"`
-	IgnoreNodeID                    string   `json:"ignoreNodeId"`
-	IgnoreNodeName                  string   `json:"ignoreNodeName"`
+	IgnoreConfigletBuilderList      []string `json:"ignoreConfigletBuilderList,omitempty"`
+	IgnoreConfigletBuilderNamesList []string `json:"ignoreConfigletBuilderNamesList,omitempty"`
+	IgnoreConfigletList             []string `json:"ignoreConfigletList,omitempty"`
+	IgnoreConfigletNamesList        []string `json:"ignoreConfigletNamesList,omitempty"`
+	IgnoreNodeID                    string   `json:"ignoreNodeId,omitempty"`
+	IgnoreNodeName                  string   `json:"ignoreNodeName,omitempty"`
 	Info                            string   `json:"info"`
 	InfoPreview                     string   `json:"infoPreview"`
 	NodeID                          string   `json:"nodeId"`
-	NodeIPAddress                   string   `json:"nodeIpAddress"`
+	NodeIPAddress                   string   `json:"nodeIpAddress,omitempty"`
 	NodeName                        string   `json:"nodeName"`
-	NodeTargetIPAddress             string   `json:"nodeTargetIpAddress"`
+	NodeTargetIPAddress             string   `json:"nodeTargetIpAddress,omitempty"`
 	NodeType                        string   `json:"nodeType"`
 	ToID                            string   `json:"toId"`
 	ToIDType                        string   `json:"toIdType"`
@@ -533,6 +533,7 @@ func (c CvpRestAPI) containerOp(containerName, containerKey, parentName,
 			NodeType:    "container",
 			NodeID:      containerKey,
 			ToID:        parentKey,
+			ToIDType:    "container",
 			ToName:      parentName,
 			FromID:      "",
 			FromName:    "",
