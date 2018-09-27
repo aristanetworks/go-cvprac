@@ -246,8 +246,18 @@ func TestCvpRac_Containers_SystemTest(t *testing.T) {
 	searchRes, err := api.SearchTopology(name)
 	ok(t, err)
 	assert(t, searchRes.Total == 1, "Expected: 1, Got: %d", searchRes.Total)
-	container := searchRes.ContainerList[0]
-	assert(t, container.Name == name, "")
+	containerData := searchRes.ContainerList[0]
+	assert(t, containerData.Name == name, "")
+
+	container, err := api.GetContainerByName(name)
+	ok(t, err)
+	assert(t, container.Name == name, "Expected container name [%s] Got [%s]",
+		container.Name, name)
+
+	containerInfo, err := api.GetContainerInfoByID(container.Key)
+	ok(t, err)
+	assert(t, containerInfo.ParentName == parent.Name, "Expected parent [%s] Got [%s]",
+		parent.Name, containerInfo.ParentName)
 
 	// Delete container
 	err = api.DeleteContainer(name, container.Key, parent.Name, parent.Key)

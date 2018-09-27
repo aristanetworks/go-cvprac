@@ -376,6 +376,46 @@ func (c CvpRestAPI) GetContainerByName(name string) (*Container, error) {
 	return nil, nil
 }
 
+// ContainerInfo ...
+type ContainerInfo struct {
+	Date                 int64  `json:"date"`
+	Name                 string `json:"name"`
+	ParentName           string `json:"parentName"`
+	UserID               string `json:"userId"`
+	BundleName           string `json:"bundleName"`
+	AssociatedSwitches   int    `json:"associatedSwitches"`
+	AssociatedConfiglets int    `json:"associatedConfiglets"`
+	DanzEnabledSwitches  int    `json:"danzEnabledSwitches"`
+}
+
+// GetContainerInfoByID returns ContainerInfo
+func (c CvpRestAPI) GetContainerInfoByID(id string) (*ContainerInfo, error) {
+	var query *url.Values
+
+	query = &url.Values{
+		"containerId": {id},
+	}
+
+	infoResp := struct {
+		ContainerInfo
+		ErrorResponse
+	}{}
+
+	resp, err := c.client.Get("/provisioning/getContainerInfoById.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetContainerInfoByID: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &infoResp); err != nil {
+		return nil, errors.Errorf("GetContainerInfoByID: %s", err)
+	}
+
+	if err := infoResp.Error(); err != nil {
+		return nil, errors.Errorf("GetNonConnectedDeviceCount: %s", err)
+	}
+	return &infoResp.ContainerInfo, nil
+}
+
 // GetNonConnectedDeviceCount returns number of devices not connected
 func (c CvpRestAPI) GetNonConnectedDeviceCount() (int, error) {
 	resp, err := c.client.Get("/inventory/add/getNonConnectedDeviceCount.do", nil)
