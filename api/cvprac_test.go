@@ -355,7 +355,7 @@ alias srie show running-config interface ethernet 1`
 }
 
 func TestCvpRac_CheckCompliance_SystemTest(t *testing.T) {
-	res, err := api.CheckCompliance(dev.Key, dev.Type)
+	res, err := api.CheckCompliance(dev.SystemMacAddress, "netelement")
 	ok(t, err)
 	assert(t, res.ComplianceCode == "0000", "Expected: \"0000\", Got: \"%s\"",
 		res.ComplianceCode)

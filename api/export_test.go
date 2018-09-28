@@ -183,7 +183,7 @@ func TestMain(m *testing.M) {
 
 	// get the first device that is not in undefined_container
 	for idx, device := range inventory {
-		if device.ParentContainerID != "undefined_container" {
+		if device.ParentContainerKey != "undefined_container" {
 			// Get our device
 			dev = &inventory[idx]
 			break
@@ -204,6 +204,10 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if len(devConfiglets) == 0 {
+		log.Fatalf("Device [%s:%s] no assigned configlets", dev.Fqdn, dev.SystemMacAddress)
+	}
+
 	fmt.Printf("Device:            %s\n", dev.Fqdn)
 	fmt.Printf("Device Container:  %s\n", devContainer.Name)
 	fmt.Printf("Device Configlets: %v\n", devConfiglets)

@@ -17,7 +17,7 @@
 # Supply defaults if not provided
 GOOS ?= linux
 GOARCH ?= 386
-GOTEST_FLAGS ?= -v -cover -timeout=120s
+GOTEST_FLAGS ?= -v -cover -timeout=240s
 RACE_FLAGS ?= -race -timeout=60s
 GOLDFLAGS := -ldflags="-s -w"
 

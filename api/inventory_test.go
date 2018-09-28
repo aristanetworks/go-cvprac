@@ -44,7 +44,7 @@ func Test_CvpGetAllDevicesRetError_UnitTest(t *testing.T) {
 
 	_, err := api.GetAllDevices()
 	if err.Error() != expectedErr.Error() {
-		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
+		t.Fatalf("Expected Client error: [%v] Got: [%v]", expectedErr, err)
 	}
 }
 
@@ -76,7 +76,7 @@ func Test_CvpGetAllDevicesReturnError_UnitTest(t *testing.T) {
 }
 
 func Test_CvpGetAllDevicesValid_UnitTest(t *testing.T) {
-	client := NewMockClient("{}", nil)
+	client := NewMockClient("[]", nil)
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetAllDevices()
@@ -94,7 +94,7 @@ func Test_CvpGetDeviceByNameRetError_UnitTest(t *testing.T) {
 
 	_, err := api.GetDeviceByName("DeviceName")
 	if err.Error() != expectedErr.Error() {
-		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
+		t.Fatalf("Expected Client error: [%v] Got: [%v]", expectedErr, err)
 	}
 }
 
@@ -126,7 +126,7 @@ func Test_CvpGetDeviceByNameReturnError_UnitTest(t *testing.T) {
 }
 
 func Test_CvpGetDeviceByNameValid_UnitTest(t *testing.T) {
-	client := NewMockClient("{}", nil)
+	client := NewMockClient("[]", nil)
 	api := NewCvpRestAPI(client)
 
 	_, err := api.GetDeviceByName("DeviceName")

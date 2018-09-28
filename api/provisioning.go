@@ -39,11 +39,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ActionRequest request structure for saveTopology
-type ActionRequest struct {
-	Data []Action `json:"data,omitempty"`
-}
-
 // Action request structure for saveTopology
 type Action struct {
 	Action                          string   `json:"action"`
@@ -92,14 +87,6 @@ type Action struct {
 	Timestamp            float64  `json:"timestamp,omitempty"`
 	PageType             string   `json:"pageType,omitempty"`
 	ViaContainer         bool     `json:"viaContainer,omitempty"`
-}
-
-// TopologyResp ..
-type TopologyResp struct {
-	Topology Topology `json:"topology"`
-	Type     string   `json:"type"`
-
-	ErrorResponse
 }
 
 // Topology ..
@@ -209,11 +196,6 @@ type ComplianceResp struct {
 	ErrorResponse
 }
 
-// TaskResp represents a task response
-type TaskResp struct {
-	Data TaskInfo `json:"data"`
-}
-
 // TaskInfo represents task info
 type TaskInfo struct {
 	TaskIDs []string `json:"taskIds"`
@@ -222,11 +204,14 @@ type TaskInfo struct {
 
 // GetDeviceByID returns NetElement info related to a device mac.
 func (c CvpRestAPI) GetDeviceByID(mac string) (*NetElement, error) {
-	var info NetElement
-
 	query := &url.Values{
 		"netElementId": {mac},
 	}
+
+	info := struct {
+		NetElement
+		ErrorResponse
+	}{}
 
 	resp, err := c.client.Get("/provisioning/getNetElementById.do", query)
 	if err != nil {
@@ -240,7 +225,7 @@ func (c CvpRestAPI) GetDeviceByID(mac string) (*NetElement, error) {
 	if err := info.Error(); err != nil {
 		return nil, errors.Errorf("GetDeviceByID: %s", err)
 	}
-	return &info, nil
+	return &info.NetElement, nil
 }
 
 // GetDeviceConfigletInfo returns all configlet info related to a device.
@@ -277,7 +262,7 @@ func (c CvpRestAPI) GetConfigletsByDeviceID(mac string) ([]Configlet, error) {
 	return info.ConfigletList, nil
 }
 
-func (c CvpRestAPI) addTempAction(data *ActionRequest) error {
+func (c CvpRestAPI) addTempAction(data interface{}) error {
 	var resp ErrorResponse
 
 	query := &url.Values{
@@ -306,7 +291,9 @@ func (c CvpRestAPI) addTempAction(data *ActionRequest) error {
 // deletion of device. Return a list of taskIds created in response to saving
 // the topology.
 func (c CvpRestAPI) SaveTopology() (*TaskInfo, error) {
-	var resp TaskResp
+	resp := struct {
+		Data TaskInfo `json:"data"`
+	}{}
 
 	reqResp, err := c.client.Post("/ztp/v2/saveTopology.do", nil, []string{})
 	if err != nil {
@@ -350,7 +337,9 @@ func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, com
 	info := appName + ": Configlet Assign: to Device " + dev.Fqdn
 	infoPreview := "<b>Configlet Assign:</b> to Device" + dev.Fqdn
 
-	data := &ActionRequest{Data: []Action{
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
 		Action{
 			Info:                            info,
 			InfoPreview:                     infoPreview,
@@ -433,7 +422,9 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 	info := appName + ": Configlet Remove: from Device " + dev.Fqdn
 	infoPreview := "<b>Configlet Remove:</b> from Device" + dev.Fqdn
 
-	data := &ActionRequest{Data: []Action{
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
 		Action{
 			ID:                              1,
 			Info:                            info,
@@ -485,11 +476,13 @@ func (c CvpRestAPI) ResetDevice(appName string, dev *NetElement,
 	info := appName + ": Reset: Device Reset: %s - To be Reset" + dev.Fqdn
 	infoPreview := "<b>Device Reset:</b> %s - To be Reset" + dev.Fqdn
 
-	data := &ActionRequest{Data: []Action{
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
 		Action{
 			ID:          1,
 			Action:      "reset",
-			FromID:      dev.ParentContainerID,
+			FromID:      dev.ParentContainerKey,
 			FromName:    container.Name,
 			Info:        info,
 			InfoPreview: infoPreview,
@@ -525,7 +518,9 @@ func (c CvpRestAPI) containerOp(containerName, containerKey, parentName,
 
 	msg := operation + " container " + containerName + " under container " + parentName
 
-	data := &ActionRequest{Data: []Action{
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
 		Action{
 			Info:        msg,
 			InfoPreview: msg,
@@ -644,8 +639,8 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 	}
 
 	var fromID string
-	if device.ParentContainerID != "" {
-		fromID = device.ParentContainerID
+	if device.ParentContainerKey != "" {
+		fromID = device.ParentContainerKey
 	} else {
 		parentCont, err := c.GetParentContainerForDevice(device.SystemMacAddress)
 		if err != nil {
@@ -661,7 +656,9 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 	msg := "Moving device " + device.Fqdn + " from container " + fromID +
 		" to container " + container.Name
 
-	data := &ActionRequest{Data: []Action{
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
 		Action{
 			Info:        msg,
 			InfoPreview: msg,
@@ -882,7 +879,9 @@ func (c CvpRestAPI) ApplyImageToDevice(imageInfo *ImageBundleInfo, netElement *N
 
 	msg := "Apply image " + imageInfo.Name + " to NetElement " + netElement.Fqdn
 
-	data := &ActionRequest{Data: []Action{
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
 		Action{
 			Info:        msg,
 			InfoPreview: msg,
@@ -919,7 +918,9 @@ func (c CvpRestAPI) ApplyImageToContainer(imageInfo *ImageBundleInfo, container 
 	}
 
 	msg := "Apply image " + imageInfo.Name + " to Container " + container.Name
-	data := &ActionRequest{Data: []Action{
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
 		Action{
 			ID:          1,
 			Info:        msg,
@@ -958,7 +959,9 @@ func (c CvpRestAPI) RemoveImageFromContainer(imageInfo *ImageBundleInfo,
 
 	msg := "Remove image " + imageInfo.Name + " from Container " + container.Name
 
-	data := &ActionRequest{Data: []Action{
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
 		Action{
 			ID:             1,
 			Info:           msg,
@@ -1096,6 +1099,46 @@ func (c CvpRestAPI) GetTempAction() (*Action, error) {
 		return &results[0], nil
 	}
 	return nil, nil
+}
+
+// FilterTopologyWithRange filters the topology for items matching the query parameter
+// and returning those within the specified range.
+func (c CvpRestAPI) FilterTopologyWithRange(nodeID, querystr, format string, start int,
+	end int) (*Topology, error) {
+
+	query := &url.Values{
+		"nodeId":     {nodeID},
+		"queryParam": {querystr},
+		"format":     {format},
+		"startIndex": {strconv.Itoa(start)},
+		"endIndex":   {strconv.Itoa(end)},
+	}
+
+	resp := struct {
+		Topology Topology `json:"topology"`
+		Type     string   `json:"type"`
+
+		ErrorResponse
+	}{}
+
+	reqResp, err := c.client.Get("/ztp/filterTopology.do", query)
+	if err != nil {
+		return nil, errors.Errorf("FilterTopologyWithRange: %s", err)
+	}
+
+	if err = json.Unmarshal(reqResp, &resp); err != nil {
+		return nil, errors.Errorf("FilterTopologyWithRange: %s", err)
+	}
+
+	if err := resp.Error(); err != nil {
+		return nil, errors.Errorf("FilterTopologyWithRange: %s", err)
+	}
+	return &resp.Topology, nil
+}
+
+// FilterTopology filters the topology for items matching the query parameter.
+func (c CvpRestAPI) FilterTopology(nodeID, query string) (*Topology, error) {
+	return c.FilterTopologyWithRange(nodeID, query, "topology", 0, 0)
 }
 
 // checkConfigMapping Checks whether the new configlets to be applied are
