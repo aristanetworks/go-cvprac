@@ -234,6 +234,21 @@ func (c CvpRestAPI) GetDeviceByName(fqdn string) (*NetElement, error) {
 	return nil, nil
 }
 
+// GetDeviceByID returns NetElement info related to a device mac.
+func (c CvpRestAPI) GetDeviceByID(mac string) (*NetElement, error) {
+	data, err := c.GetInventory()
+	if err != nil {
+		return nil, errors.Errorf("GetDeviceByName: %s", err)
+	}
+
+	for idx, device := range data {
+		if device.SystemMacAddress == mac {
+			return &data[idx], nil
+		}
+	}
+	return nil, nil
+}
+
 // GetDevicesInContainer returns a CvpInventoryList based on container name provided
 func (c CvpRestAPI) GetDevicesInContainer(name string) ([]NetElement, error) {
 	containerInfo, err := c.GetContainerByName(name)

@@ -71,7 +71,7 @@ test:
 	$(GOFOLDERS) | xargs $(GO) test $(GOTEST_FLAGS)
 
 systest:
-	$(GOFOLDERS) | xargs $(GO) test $(GOTEST_FLAGS) -run SystemTest$
+	$(GOFOLDERS) | xargs $(GO) test $(GOTEST_FLAGS) -tags=systest -run SystemTest$
 
 unittest:
 	$(GOFOLDERS) | xargs $(GO) test $(GOTEST_FLAGS) -run UnitTest$

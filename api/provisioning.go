@@ -202,32 +202,6 @@ type TaskInfo struct {
 	Status  string   `json:"status"`
 }
 
-// GetDeviceByID returns NetElement info related to a device mac.
-func (c CvpRestAPI) GetDeviceByID(mac string) (*NetElement, error) {
-	query := &url.Values{
-		"netElementId": {mac},
-	}
-
-	info := struct {
-		NetElement
-		ErrorResponse
-	}{}
-
-	resp, err := c.client.Get("/provisioning/getNetElementById.do", query)
-	if err != nil {
-		return nil, errors.Errorf("GetDeviceByID: %s", err)
-	}
-
-	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetDeviceByID: %s", err)
-	}
-
-	if err := info.Error(); err != nil {
-		return nil, errors.Errorf("GetDeviceByID: %s", err)
-	}
-	return &info.NetElement, nil
-}
-
 // GetDeviceConfigletInfo returns all configlet info related to a device.
 func (c CvpRestAPI) GetDeviceConfigletInfo(mac string) (*ConfigletInfo, error) {
 	var info ConfigletInfo
@@ -441,16 +415,16 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 			IgnoreConfigletNamesList:        rmNames,
 			IgnoreConfigletBuilderList:      rmbKeys,
 			IgnoreConfigletBuilderNamesList: rmbNames,
-			ToID:                dev.SystemMacAddress,
-			ToIDType:            "netelement",
-			FromID:              "",
-			NodeName:            "",
-			NodeIPAddress:       dev.IPAddress,
-			NodeTargetIPAddress: dev.IPAddress,
-			FromName:            "",
-			ToName:              dev.Fqdn,
-			ChildTasks:          []string{},
-			ParentTask:          "",
+			ToID:                            dev.SystemMacAddress,
+			ToIDType:                        "netelement",
+			FromID:                          "",
+			NodeName:                        "",
+			NodeIPAddress:                   dev.IPAddress,
+			NodeTargetIPAddress:             dev.IPAddress,
+			FromName:                        "",
+			ToName:                          dev.Fqdn,
+			ChildTasks:                      []string{},
+			ParentTask:                      "",
 		},
 	}}
 	if err := c.addTempAction(data); err != nil {
@@ -849,10 +823,10 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 		return nil, errors.Errorf("GetImageBundleByName: %s", err)
 	}
 	ret := &ImageBundleInfo{
-		AppliedContainersCount: resp.AppliedContainersCount,
-		AppliedDevicesCount:    resp.AppliedDevicesCount,
-		FactoryID:              resp.FactoryID,
-		ID:                     1,
+		AppliedContainersCount:   resp.AppliedContainersCount,
+		AppliedDevicesCount:      resp.AppliedDevicesCount,
+		FactoryID:                resp.FactoryID,
+		ID:                       1,
 		IsCertifiedImageBundle:   resp.IsCertifiedImageBundle,
 		ImageIds:                 resp.ImageIds,
 		Images:                   resp.Images,
@@ -861,7 +835,7 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 		Note:                     resp.Note,
 		UploadedBy:               resp.UploadedBy,
 		UploadedDateinLongFormat: resp.UploadedDateinLongFormat,
-		User: resp.User,
+		User:                     resp.User,
 	}
 	return ret, nil
 
