@@ -5,14 +5,13 @@
 1. [Overview](#overview)
 2. [Requirements](#requirements)
 3. [Installation](#installation)
-4. [Upgrading](#upgrading)
-5. [Usage](#usage)
-6. [Development](#development)
-7. [Testing](#testing)
-8. [Versioning](#versioning)
-9. [Contributing](#contributing)
-10. [Support](#support)
-11. [License](#license)
+4. [Usage](#usage)
+5. [Development](#development)
+6. [Testing](#testing)
+7. [Versioning](#versioning)
+8. [Contributing](#contributing)
+9. [Support](#support)
+10. [License](#license)
 
 
 ## Overview
@@ -38,19 +37,13 @@ Please refer section [Versioning](#versioning) for detailed info.
 To download and install go-cvprac:
 
 ```bash
-$ go get gopkg.in/aristanetworks/go-cvprac
+$ go get -u gopkg.in/aristanetworks/go-cvprac.v1
 ```
 
 After setting up Go and installing go-cvprac, any required build tools can be installed by bootstrapping your environment via:
 
 ```bash
 $ make bootstrap
-```
-
-## Upgrading
-
-```bash
-$ go get -u gopkg.in/aristanetworks/go-cvprac
 ```
 
 ## Usage
