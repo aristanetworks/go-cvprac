@@ -450,16 +450,16 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 			IgnoreConfigletNamesList:        rmNames,
 			IgnoreConfigletBuilderList:      rmbKeys,
 			IgnoreConfigletBuilderNamesList: rmbNames,
-			ToID:                dev.SystemMacAddress,
-			ToIDType:            "netelement",
-			FromID:              "",
-			NodeName:            "",
-			NodeIPAddress:       dev.IPAddress,
-			NodeTargetIPAddress: dev.IPAddress,
-			FromName:            "",
-			ToName:              dev.Fqdn,
-			ChildTasks:          []string{},
-			ParentTask:          "",
+			ToID:                            dev.SystemMacAddress,
+			ToIDType:                        "netelement",
+			FromID:                          "",
+			NodeName:                        "",
+			NodeIPAddress:                   dev.IPAddress,
+			NodeTargetIPAddress:             dev.IPAddress,
+			FromName:                        "",
+			ToName:                          dev.Fqdn,
+			ChildTasks:                      []string{},
+			ParentTask:                      "",
 		},
 	}}
 	if err := c.addTempAction(data); err != nil {
@@ -851,10 +851,10 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 		return nil, errors.Errorf("GetImageBundleByName: %s", err)
 	}
 	ret := &ImageBundleInfo{
-		AppliedContainersCount: resp.AppliedContainersCount,
-		AppliedDevicesCount:    resp.AppliedDevicesCount,
-		FactoryID:              resp.FactoryID,
-		ID:                     1,
+		AppliedContainersCount:   resp.AppliedContainersCount,
+		AppliedDevicesCount:      resp.AppliedDevicesCount,
+		FactoryID:                resp.FactoryID,
+		ID:                       1,
 		IsCertifiedImageBundle:   resp.IsCertifiedImageBundle,
 		ImageIds:                 resp.ImageIds,
 		Images:                   resp.Images,
@@ -863,7 +863,7 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 		Note:                     resp.Note,
 		UploadedBy:               resp.UploadedBy,
 		UploadedDateinLongFormat: resp.UploadedDateinLongFormat,
-		User: resp.User,
+		User:                     resp.User,
 	}
 	return ret, nil
 
