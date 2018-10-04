@@ -34,7 +34,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/aristanetworks/go-cvprac/client"
+	"gopkg.in/aristanetworks/go-cvprac.v1/client"
 )
 
 func main() {

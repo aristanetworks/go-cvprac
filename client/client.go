@@ -41,8 +41,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	cvprac "github.com/aristanetworks/go-cvprac"
-	"github.com/aristanetworks/go-cvprac/api"
+	cvprac "gopkg.in/aristanetworks/go-cvprac.v1"
+	"gopkg.in/aristanetworks/go-cvprac.v1/api"
 
 	"net/http"
 
