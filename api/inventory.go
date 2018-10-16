@@ -34,7 +34,6 @@ package cvpapi
 import (
 	"encoding/json"
 	"net/url"
-	"strconv"
 
 	"github.com/pkg/errors"
 )
@@ -54,7 +53,7 @@ type NetElement struct {
 	HardwareRevision     string       `json:"hardwareRevision"`
 	Fqdn                 string       `json:"fqdn"`
 	TaskIDList           []CvpTask    `json:"taskIdList"`
-	ZtpMode              string       `json:"ztpMode"`
+	ZtpMode              interface{}  `json:"ztpMode"`
 	Version              string       `json:"version"`
 	SerialNumber         string       `json:"serialNumber"`
 	Key                  string       `json:"key"`
@@ -68,9 +67,7 @@ type NetElement struct {
 	UnAuthorized         bool         `json:"unAuthorized"`
 	DeviceInfo           string       `json:"deviceInfo"`
 	DeviceStatus         string       `json:"deviceStatus"`
-	ParentContainerID    string       `json:"parentContainerId"`
-
-	ErrorResponse
+	ParentContainerKey   string       `json:"parentContainerKey"`
 }
 
 // TempAction is
@@ -167,15 +164,13 @@ type SaveInventoryData struct {
 //   "containerList": {},
 //   "netElementList": []
 // }
-func (c CvpRestAPI) GetInventory(querystr string, start int, end int) (*CvpInventoryList, error) {
-	var info CvpInventoryList
+func (c CvpRestAPI) GetInventory() ([]NetElement, error) {
+	var info []NetElement
 	query := &url.Values{
-		"queryparam": {querystr},
-		"startIndex": {strconv.Itoa(start)},
-		"endIndex":   {strconv.Itoa(end)},
+		"provisioned": {"true"},
 	}
 
-	resp, err := c.client.Get("/inventory/getInventory.do", query)
+	resp, err := c.client.Get("/inventory/devices", query)
 	if err != nil {
 		return nil, errors.Errorf("GetInventory: %s", err)
 	}
@@ -184,12 +179,7 @@ func (c CvpRestAPI) GetInventory(querystr string, start int, end int) (*CvpInven
 		return nil, errors.Errorf("GetInventory: %s", err)
 
 	}
-
-	if err := info.Error(); err != nil {
-		return nil, errors.Errorf("GetInventory: %s", err)
-	}
-
-	return &info, nil
+	return info, nil
 }
 
 // GetInventoryConfiguration returns a CvpInventoryConfiguration based on a provided MAC Address.
@@ -225,26 +215,35 @@ func (c CvpRestAPI) GetInventoryConfiguration(
 
 // GetAllDevices returns CvpInventoryList of all current inventory
 func (c CvpRestAPI) GetAllDevices() ([]NetElement, error) {
-	data, err := c.GetInventory("", 0, 0)
-	if err != nil {
-		return nil, errors.Errorf("GetAllDevices: %s", err)
-	}
-	if len(data.NetElementList) > 0 {
-		return data.NetElementList, nil
-	}
-	return nil, nil
+	ret, err := c.GetInventory()
+	return ret, errors.Wrap(err, "GetAllDevices")
 }
 
 // GetDeviceByName returns a CvpInventoryList based on device name provided
 func (c CvpRestAPI) GetDeviceByName(fqdn string) (*NetElement, error) {
-	data, err := c.GetInventory(fqdn, 0, 0)
+	data, err := c.GetInventory()
 	if err != nil {
 		return nil, errors.Errorf("GetDeviceByName: %s", err)
 	}
 
-	for idx, device := range data.NetElementList {
+	for idx, device := range data {
 		if device.Fqdn == fqdn {
-			return &data.NetElementList[idx], nil
+			return &data[idx], nil
+		}
+	}
+	return nil, nil
+}
+
+// GetDeviceByID returns NetElement info related to a device mac.
+func (c CvpRestAPI) GetDeviceByID(mac string) (*NetElement, error) {
+	data, err := c.GetInventory()
+	if err != nil {
+		return nil, errors.Errorf("GetDeviceByName: %s", err)
+	}
+
+	for idx, device := range data {
+		if device.SystemMacAddress == mac {
+			return &data[idx], nil
 		}
 	}
 	return nil, nil
@@ -268,7 +267,7 @@ func (c CvpRestAPI) GetDevicesInContainer(name string) ([]NetElement, error) {
 
 	var netElements []NetElement
 	for idx, ele := range data {
-		if ele.ParentContainerID == containerInfo.Key {
+		if ele.ParentContainerKey == containerInfo.Key {
 			netElements = append(netElements, data[idx])
 		}
 	}
@@ -279,20 +278,14 @@ func (c CvpRestAPI) GetDevicesInContainer(name string) ([]NetElement, error) {
 func (c CvpRestAPI) GetUndefinedDevices() ([]NetElement, error) {
 	var res []NetElement
 
-	data, err := c.GetInventory("undefined", 0, 0)
+	data, err := c.GetInventory()
 	if err != nil {
 		return nil, errors.Errorf("GetUndefinedDevices: %s", err)
 	}
 
-	numElements := len(data.NetElementList)
-	if numElements > 0 {
-		var idx int
-		res = make([]NetElement, numElements)
-		for _, netElement := range data.NetElementList {
-			if netElement.ParentContainerID == "undefined_container" {
-				res[idx] = netElement
-				idx++
-			}
+	for _, netElement := range data {
+		if netElement.ParentContainerKey == "undefined_container" {
+			res = append(res, netElement)
 		}
 	}
 	return res, nil
@@ -300,25 +293,20 @@ func (c CvpRestAPI) GetUndefinedDevices() ([]NetElement, error) {
 
 // GetDeviceContainer returns a Container this device is allocated to
 func (c CvpRestAPI) GetDeviceContainer(mac string) (*Container, error) {
-	data, err := c.GetInventory(mac, 0, 0)
+	data, err := c.SearchTopology(mac)
 	if err != nil {
 		return nil, errors.Errorf("GetDeviceContainer: %s", err)
 	}
 
-	if len(data.NetElementList) == 0 {
-		return nil, nil
-	}
-
-	var deviceKey string
-	for _, device := range data.NetElementList {
-		if device.SystemMacAddress == mac {
-			deviceKey = device.Key
+	var containerName string
+	for _, device := range data.NetElementContainerList {
+		if device.NetElementKey == mac {
+			containerName = device.ContainerName
 			break
 		}
 	}
 
-	containerName, found := data.ContainerList[deviceKey]
-	if !found {
+	if containerName == "" {
 		return nil, errors.Errorf("Device [%s] not of any Container", mac)
 	}
 	return c.GetContainerByName(containerName)
@@ -326,35 +314,26 @@ func (c CvpRestAPI) GetDeviceContainer(mac string) (*Container, error) {
 
 // Container is
 type Container struct {
-	ChildContainerID bool   `json:"childContainerId"`
-	FactoryID        int    `json:"factoryId"`
-	ID               int    `json:"id"`
-	Key              string `json:"key"`
-	Name             string `json:"name"`
-	ParentID         string `json:"parentId"`
-	Type             string `json:"type"`
-	UserID           string `json:"userId"`
-}
-
-// ContainerList is a list of NetElements and Containers
-type ContainerList struct {
-	Total         int         `json:"total"`
-	ContainerList []Container `json:"data"`
-
-	ErrorResponse
+	Key       string `json:"Key"`
+	Name      string `json:"Name"`
+	CreatedBy string `json:"CreatedBy"`
+	CreatedOn int64  `json:"CreatedOn"`
+	Mode      string `json:"Mode"`
 }
 
 // GetContainer returns
 // The endpoint searchContainers.do will not return the Undefined_Container in the list
-func (c CvpRestAPI) GetContainer(querystr string, start int, end int) (*ContainerList, error) {
-	var info ContainerList
-	query := &url.Values{
-		"queryparam": {querystr},
-		"startIndex": {strconv.Itoa(start)},
-		"endIndex":   {strconv.Itoa(end)},
+func (c CvpRestAPI) GetContainer(name string) ([]Container, error) {
+	var info []Container
+	var query *url.Values
+
+	if name != "" {
+		query = &url.Values{
+			"name": {name},
+		}
 	}
 
-	resp, err := c.client.Get("/inventory/add/searchContainers.do", query)
+	resp, err := c.client.Get("/inventory/containers", query)
 	if err != nil {
 		return nil, errors.Errorf("GetContainer: %s", err)
 	}
@@ -363,29 +342,66 @@ func (c CvpRestAPI) GetContainer(querystr string, start int, end int) (*Containe
 		return nil, errors.Errorf("GetContainer: %s", err)
 	}
 
-	if err := info.Error(); err != nil {
-		return nil, errors.Errorf("GetContainer: %s", err)
-	}
-	return &info, nil
+	return info, nil
 }
 
 // GetAllContainers returns all current inventory Containers
-func (c CvpRestAPI) GetAllContainers() (*ContainerList, error) {
-	return c.GetContainer("", 0, 0)
+func (c CvpRestAPI) GetAllContainers() ([]Container, error) {
+	return c.GetContainer("")
 }
 
 // GetContainerByName returns a Container
 func (c CvpRestAPI) GetContainerByName(name string) (*Container, error) {
-	data, err := c.GetContainer(name, 0, 0)
+	containers, err := c.GetContainer(name)
 	if err != nil {
 		return nil, errors.Errorf("GetContainerByName: %s", err)
 	}
-	for _, cont := range data.ContainerList {
-		if cont.Name == name {
-			return &cont, nil
+	for _, container := range containers {
+		if container.Name == name {
+			return &container, nil
 		}
 	}
 	return nil, nil
+}
+
+// ContainerInfo ...
+type ContainerInfo struct {
+	Date                 int64  `json:"date"`
+	Name                 string `json:"name"`
+	ParentName           string `json:"parentName"`
+	UserID               string `json:"userId"`
+	BundleName           string `json:"bundleName"`
+	AssociatedSwitches   int    `json:"associatedSwitches"`
+	AssociatedConfiglets int    `json:"associatedConfiglets"`
+	DanzEnabledSwitches  int    `json:"danzEnabledSwitches"`
+}
+
+// GetContainerInfoByID returns ContainerInfo
+func (c CvpRestAPI) GetContainerInfoByID(id string) (*ContainerInfo, error) {
+	var query *url.Values
+
+	query = &url.Values{
+		"containerId": {id},
+	}
+
+	infoResp := struct {
+		ContainerInfo
+		ErrorResponse
+	}{}
+
+	resp, err := c.client.Get("/provisioning/getContainerInfoById.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetContainerInfoByID: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &infoResp); err != nil {
+		return nil, errors.Errorf("GetContainerInfoByID: %s", err)
+	}
+
+	if err := infoResp.Error(); err != nil {
+		return nil, errors.Errorf("GetNonConnectedDeviceCount: %s", err)
+	}
+	return &infoResp.ContainerInfo, nil
 }
 
 // GetNonConnectedDeviceCount returns number of devices not connected

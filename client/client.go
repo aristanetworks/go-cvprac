@@ -300,9 +300,8 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 	data interface{}) ([]byte, error) {
 	var err error
 	var resp *resty.Response
-	var retryCnt int
 
-	retryCnt = NumRetryRequests
+	retryCnt := NumRetryRequests
 
 	request := c.Client.R()
 
@@ -374,23 +373,21 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		}
 
 		var info cvpapi.ErrorResponse
-		if err = json.Unmarshal(resp.Body(), &info); err != nil {
-			return nil, errors.Wrap(err, "unmarshal failed")
-		}
-
-		// check and see if we have a CVP error payload
-		if err = info.Error(); err != nil {
-			// Unauthorized User
-			if info.ErrorCode == "112498" {
-				// retry to same node/host
-				// Unauthorized User error because this is how CVP responds
-				// to a logged out users requests in 2017.1 and beyond.
-				//  Reset the session which will login. If a valid
-				// session comes back then clear the error so this request
-				// will be retried on the same node.
-				c.Client.SetHeaders(c.Headers)
-				retryCnt--
-				continue
+		if err = json.Unmarshal(resp.Body(), &info); err == nil {
+			// check and see if we have a CVP error payload
+			if err = info.Error(); err != nil {
+				// Unauthorized User
+				if info.ErrorCode == "112498" {
+					// retry to same node/host
+					// Unauthorized User error because this is how CVP responds
+					// to a logged out users requests in 2017.1 and beyond.
+					//  Reset the session which will login. If a valid
+					// session comes back then clear the error so this request
+					// will be retried on the same node.
+					c.Client.SetHeaders(c.Headers)
+					retryCnt--
+					continue
+				}
 			}
 		}
 		break

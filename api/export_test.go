@@ -1,3 +1,4 @@
+// +build systest
 //
 // Copyright (c) 2016-2017, Arista Networks, Inc. All rights reserved.
 //
@@ -89,7 +90,9 @@ func CreateTask(c *CvpRestAPI) (int, string, error) {
 		if err != nil {
 			panic(err)
 		}
-		if tmpConfiglet.NetElementCount == 1 {
+		// Choose a configlet that's only applied to one device and is not a
+		// Reconciled configlet (Can't change Reconciled configlets)
+		if tmpConfiglet.NetElementCount == 1 && !tmpConfiglet.Reconciled {
 			// Make sure we are referencing the actual memory here
 			// so when we update the configlet it's refected throughout
 			configlet = &devConfiglets[idx]
@@ -179,8 +182,17 @@ func TestMain(m *testing.M) {
 		log.Fatalf("No devices found. Error: %v", err)
 	}
 
-	// Get our device
-	dev = &inventory[0]
+	// get the first device that is not in undefined_container
+	for idx, device := range inventory {
+		if device.ParentContainerKey != "undefined_container" {
+			// Get our device
+			dev = &inventory[idx]
+			break
+		}
+	}
+	if dev == nil {
+		log.Fatalf("All devices are in Undefined_Container")
+	}
 
 	devContainer, err = api.GetParentContainerForDevice(dev.SystemMacAddress)
 	if err != nil {
@@ -193,13 +205,12 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if len(devConfiglets) == 0 {
+		log.Fatalf("Device [%s:%s] no assigned configlets", dev.Fqdn, dev.SystemMacAddress)
+	}
 
 	fmt.Printf("Device:            %s\n", dev.Fqdn)
 	fmt.Printf("Device Container:  %s\n", devContainer.Name)
 	fmt.Printf("Device Configlets: %v\n", devConfiglets)
-	for _, c := range devConfiglets {
-		fmt.Printf("%v\n", c.Type)
-	}
-
 	os.Exit(m.Run())
 }
