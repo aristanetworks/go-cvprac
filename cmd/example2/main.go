@@ -33,7 +33,7 @@ package main
 import (
 	"log"
 
-	"gopkg.in/aristanetworks/go-cvprac.v1/client"
+	"gopkg.in/aristanetworks/go-cvprac.v2/client"
 )
 
 func main() {

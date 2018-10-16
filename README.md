@@ -37,7 +37,7 @@ Please refer section [Versioning](#versioning) for detailed info.
 To download and install go-cvprac:
 
 ```bash
-$ go get -u gopkg.in/aristanetworks/go-cvprac.v1
+$ go get -u gopkg.in/aristanetworks/go-cvprac.v2
 ```
 
 After setting up Go and installing go-cvprac, any required build tools can be installed by bootstrapping your environment via:
@@ -59,7 +59,7 @@ import (
 	"fmt"
 	"log"
 
-	"gopkg.in/aristanetworks/go-cvprac.v1/client"
+	"gopkg.in/aristanetworks/go-cvprac.v2/client"
 )
 
 func main() {
@@ -100,7 +100,7 @@ import (
 	"fmt"
 	"log"
 
-	"gopkg.in/aristanetworks/go-cvprac.v1/api"
+	"gopkg.in/aristanetworks/go-cvprac.v2/api"
 )
 
 type YourCustomClient struct {
