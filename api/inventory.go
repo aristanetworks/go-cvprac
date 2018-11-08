@@ -45,9 +45,9 @@ type NetElement struct {
 	ModelName            string       `json:"modelName"`
 	InternalVersion      string       `json:"internalVersion"`
 	SystemMacAddress     string       `json:"systemMacAddress"`
-	MemTotal             int          `json:"memTotal"`
+	MemTotal             int64        `json:"memTotal"`
 	BootupTimeStamp      float64      `json:"bootupTimeStamp"`
-	MemFree              int          `json:"memFree"`
+	MemFree              int64        `json:"memFree"`
 	Architecture         string       `json:"architecture"`
 	InternalBuildID      string       `json:"internalBuildId"`
 	HardwareRevision     string       `json:"hardwareRevision"`
