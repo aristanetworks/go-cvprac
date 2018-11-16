@@ -39,31 +39,39 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ConfigCompareCount request structure for saveTopology
+type ConfigCompareCount struct {
+	Mismatch  int `json:"mismatch"`
+	New       int `json:"new"`
+	Reconcile int `json:"reconcile"`
+}
+
 // Action request structure for saveTopology
 type Action struct {
-	Action                          string   `json:"action"`
-	ConfigletBuilderList            []string `json:"configletBuilderList,omitempty"`
-	ConfigletBuilderNamesList       []string `json:"configletBuilderNamesList,omitempty"`
-	ConfigletList                   []string `json:"configletList,omitempty"`
-	ConfigletNamesList              []string `json:"configletNamesList,omitempty"`
-	FromID                          string   `json:"fromId"`
-	FromName                        string   `json:"fromName"`
-	IgnoreConfigletBuilderList      []string `json:"ignoreConfigletBuilderList,omitempty"`
-	IgnoreConfigletBuilderNamesList []string `json:"ignoreConfigletBuilderNamesList,omitempty"`
-	IgnoreConfigletList             []string `json:"ignoreConfigletList,omitempty"`
-	IgnoreConfigletNamesList        []string `json:"ignoreConfigletNamesList,omitempty"`
-	IgnoreNodeID                    string   `json:"ignoreNodeId,omitempty"`
-	IgnoreNodeName                  string   `json:"ignoreNodeName,omitempty"`
-	Info                            string   `json:"info"`
-	InfoPreview                     string   `json:"infoPreview"`
-	NodeID                          string   `json:"nodeId"`
-	NodeIPAddress                   string   `json:"nodeIpAddress,omitempty"`
-	NodeName                        string   `json:"nodeName"`
-	NodeTargetIPAddress             string   `json:"nodeTargetIpAddress,omitempty"`
-	NodeType                        string   `json:"nodeType"`
-	ToID                            string   `json:"toId"`
-	ToIDType                        string   `json:"toIdType"`
-	ToName                          string   `json:"toName"`
+	Action                          string             `json:"action"`
+	ConfigCompareCount              ConfigCompareCount `json:"configCompareCount,omitempty"`
+	ConfigletBuilderList            []string           `json:"configletBuilderList,omitempty"`
+	ConfigletBuilderNamesList       []string           `json:"configletBuilderNamesList,omitempty"`
+	ConfigletList                   []string           `json:"configletList,omitempty"`
+	ConfigletNamesList              []string           `json:"configletNamesList,omitempty"`
+	FromID                          string             `json:"fromId"`
+	FromName                        string             `json:"fromName"`
+	IgnoreConfigletBuilderList      []string           `json:"ignoreConfigletBuilderList,omitempty"`
+	IgnoreConfigletBuilderNamesList []string           `json:"ignoreConfigletBuilderNamesList,omitempty"`
+	IgnoreConfigletList             []string           `json:"ignoreConfigletList,omitempty"`
+	IgnoreConfigletNamesList        []string           `json:"ignoreConfigletNamesList,omitempty"`
+	IgnoreNodeID                    string             `json:"ignoreNodeId,omitempty"`
+	IgnoreNodeName                  string             `json:"ignoreNodeName,omitempty"`
+	Info                            string             `json:"info"`
+	InfoPreview                     string             `json:"infoPreview"`
+	NodeID                          string             `json:"nodeId"`
+	NodeIPAddress                   string             `json:"nodeIpAddress,omitempty"`
+	NodeName                        string             `json:"nodeName"`
+	NodeTargetIPAddress             string             `json:"nodeTargetIpAddress,omitempty"`
+	NodeType                        string             `json:"nodeType"`
+	ToID                            string             `json:"toId"`
+	ToIDType                        string             `json:"toIdType"`
+	ToName                          string             `json:"toName"`
 
 	CCID                 string   `json:"ccId,omitempty"`
 	ID                   int      `json:"id,omitempty"`
@@ -194,6 +202,110 @@ type ComplianceResp struct {
 	//tempAction  null `json:"tempAction"`
 
 	ErrorResponse
+}
+
+// ReconciledConfig ...
+type ReconciledConfig struct {
+	Key                  string  `json:"key"`
+	Name                 string  `json:"name"`
+	Reconciled           bool    `json:"reconciled"`
+	Config               string  `json:"config"`
+	User                 string  `json:"user"`
+	Note                 string  `json:"note"`
+	ContainerCount       int     `json:"containerCount"`
+	NetElementCount      int     `json:"netElementCount"`
+	DateTimeInLongFormat float64 `json:"dateTimeInLongFormat"`
+	IsDefault            string  `json:"isDefault"`
+	IsAutoBuilder        string  `json:"isAutoBuilder"`
+	Type                 string  `json:"type"`
+	Editable             bool    `json:"editable"`
+	SSLConfig            bool    `json:"sslConfig"`
+	Visible              bool    `json:"visible"`
+	FactoryID            int     `json:"factoryId"`
+	ID                   int     `json:"id"`
+}
+
+// ConfigBlock ...
+type ConfigBlock struct {
+	Command string `json:"command"`
+	RowID   int    `json:"rowId"`
+	BlockID string `json:"blockId"`
+	Code    string `json:"code"`
+}
+
+// ValidateAndCompareConfigletsResp ...
+type ValidateAndCompareConfigletsResp struct {
+	ReconciledConfig   ReconciledConfig `json:"reconciledConfig"`
+	Reconcile          int              `json:"reconcile"`
+	New                int              `json:"new"`
+	DesignedConfig     []ConfigBlock    `json:"designedConfig"`
+	Total              int              `json:"total"`
+	RunningConfig      []ConfigBlock    `json:"runningConfig"`
+	IsReconcileInvoked bool             `json:"isReconcileInvoked"`
+	Mismatch           int              `json:"mismatch"`
+	Warnings           []string         `json:"warnings"`
+	Errors             []string         `json:"errors"`
+}
+
+// UnmarshalJSON ...
+func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
+	var objMap map[string]*json.RawMessage
+	err := json.Unmarshal(data, &objMap)
+	if err != nil {
+		return err
+	}
+	// Check data for ReconciledConfig
+	// This check is necessary because the ReconciledConfig is returned as an object when
+	// there is data but as an empty string when there is none
+	var newRecConf ReconciledConfig
+	json.Unmarshal(*objMap["reconciledConfig"], &newRecConf)
+	vcc.ReconciledConfig = newRecConf
+	// Check data for Reconcile
+	var newReconcile int
+	json.Unmarshal(*objMap["reconcile"], &newReconcile)
+	vcc.Reconcile = newReconcile
+	// Check data for New
+	var newNew int
+	json.Unmarshal(*objMap["new"], &newNew)
+	vcc.New = newNew
+	// Check data for Mismatch
+	var newMismatch int
+	json.Unmarshal(*objMap["mismatch"], &newMismatch)
+	vcc.Mismatch = newMismatch
+	// Check data for Total
+	var newTotal int
+	json.Unmarshal(*objMap["total"], &newTotal)
+	vcc.Total = newTotal
+	// Check data for IsReconcileInvoked
+	var newInvoked bool
+	json.Unmarshal(*objMap["isReconcileInvoked"], &newInvoked)
+	vcc.IsReconcileInvoked = newInvoked
+	// Check data for DesignedConfig
+	var newDesignedConfig []ConfigBlock
+	json.Unmarshal(*objMap["designedConfig"], &newDesignedConfig)
+	vcc.DesignedConfig = newDesignedConfig
+	// Check data for RunningConfig
+	var newRunningConfig []ConfigBlock
+	json.Unmarshal(*objMap["runningConfig"], &newRunningConfig)
+	vcc.RunningConfig = newRunningConfig
+	// Check data for Warnings
+	var newWarnings []string
+	json.Unmarshal(*objMap["warnings"], &newWarnings)
+	vcc.Warnings = newWarnings
+	// Check data for Errors as list of strings
+	var newErrors []string
+	err = json.Unmarshal(*objMap["errors"], &newErrors)
+	if err != nil {
+		// Check for Errors as string
+		var newErrorsString string
+		err = json.Unmarshal(*objMap["errors"], &newErrorsString)
+		// If Errors found as non empty string save it as list of strings
+		if err == nil && newErrorsString != "" {
+			newErrors = []string{newErrorsString}
+		}
+	}
+	vcc.Errors = newErrors
+	return nil
 }
 
 // TaskInfo represents task info
@@ -359,6 +471,122 @@ func (c CvpRestAPI) ApplyConfigletToDevice(appName string, dev *NetElement,
 	return c.ApplyConfigletsToDevice(appName, dev, commit, newConfigletList...)
 }
 
+// ValidateConfigletsForDevice validate provided configlets for device.
+func (c CvpRestAPI) ValidateConfigletsForDevice(deviceMac string, configletKeys []string) (
+	*ValidateAndCompareConfigletsResp, error) {
+	var resp ValidateAndCompareConfigletsResp
+	data := struct {
+		NetElementID string   `json:"netElementId,omitempty"`
+		ConfigIDList []string `json:"configIdList,omitempty"`
+		PageType     string   `json:"pageType,omitempty"`
+	}{
+		NetElementID: deviceMac,
+		ConfigIDList: configletKeys,
+		PageType:     "validateConfig",
+	}
+
+	reqResp, err := c.client.Post("/provisioning/validateAndCompareConfiglets.do", nil, data)
+	if err != nil {
+		return nil, errors.Errorf("ValidateConfigletsForDevice: %s", err)
+	}
+
+	if err = json.Unmarshal(reqResp, &resp); err != nil {
+		return nil, errors.Errorf("ValidateConfigletsForDevice: %s", err)
+	}
+
+	if err := resp.Errors; err != nil {
+		return nil, errors.Errorf("ValidateConfigletsForDevice: %s", err)
+	}
+	return &resp, nil
+}
+
+// ValidateAndApplyConfigletsToDevice validate and apply the configlets to the device.
+func (c CvpRestAPI) ValidateAndApplyConfigletsToDevice(appName string, dev *NetElement, commit bool,
+	newConfiglets ...Configlet) (*TaskInfo, error) {
+	if dev == nil {
+		return nil, errors.Errorf("ApplyConfigletsToDevice: nil NetElement")
+	}
+
+	configlets, err := c.GetConfigletsByDeviceID(dev.SystemMacAddress)
+	if err != nil {
+		return nil, errors.Errorf("ApplyConfigletsToDevice: %s", err)
+	}
+
+	action, configletMap, builderMap, err := checkConfigMapping(configlets, newConfiglets)
+	if err != nil {
+		return nil, errors.Wrap(err, "ApplyConfigletsToDevice")
+	}
+
+	if !action {
+		return nil, nil
+	}
+
+	// Get a list of the names and keys of the configlets
+	ckeys, cnames := keyValueSliceFromMap(configletMap)
+
+	// Get a list of the names and keys of the configlet builders
+	cbkeys, cbnames := keyValueSliceFromMap(builderMap)
+
+	// Run Validation of new configlets to be applied
+	validateResp, err := c.ValidateConfigletsForDevice(dev.Key, ckeys)
+	if err != nil {
+		return nil, errors.Errorf("ApplyConfigletsToDevice: %s", err)
+	}
+	// If validation returned a proper validation response pull the config compare count values
+	// to be applied to the Action data
+	var confCompCount ConfigCompareCount
+	if validateResp != nil {
+		confCompCount = ConfigCompareCount{
+			Mismatch:  validateResp.Mismatch,
+			New:       validateResp.New,
+			Reconcile: validateResp.Reconcile,
+		}
+	}
+
+	info := appName + ": Configlet Assign: to Device " + dev.Fqdn
+	infoPreview := "<b>Configlet Assign:</b> to Device" + dev.Fqdn
+
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
+		Action{
+			ConfigCompareCount:              confCompCount,
+			Info:                            info,
+			InfoPreview:                     infoPreview,
+			Note:                            "",
+			Action:                          "associate",
+			NodeType:                        "configlet",
+			NodeID:                          "",
+			ConfigletBuilderList:            cbkeys,
+			ConfigletBuilderNamesList:       cbnames,
+			ConfigletList:                   ckeys,
+			ConfigletNamesList:              cnames,
+			IgnoreConfigletBuilderNamesList: []string{},
+			IgnoreConfigletBuilderList:      []string{},
+			IgnoreConfigletNamesList:        []string{},
+			IgnoreConfigletList:             []string{},
+			ToID:                            dev.SystemMacAddress,
+			ToIDType:                        "netelement",
+			FromID:                          "",
+			NodeIPAddress:                   dev.IPAddress,
+			NodeName:                        "",
+			NodeTargetIPAddress:             dev.IPAddress,
+			FromName:                        "",
+			ToName:                          dev.Fqdn,
+			ChildTasks:                      []string{},
+			ParentTask:                      "",
+		},
+	}}
+
+	if err := c.addTempAction(data); err != nil {
+		return nil, errors.Errorf("ApplyConfigletsToDevice: %s", err)
+	}
+	if commit {
+		return c.SaveTopology()
+	}
+	return nil, nil
+}
+
 // RemoveConfigletsFromDevice Remove the configlets from the device.
 func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, commit bool,
 	remConfiglets ...Configlet) (*TaskInfo, error) {
@@ -415,16 +643,16 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 			IgnoreConfigletNamesList:        rmNames,
 			IgnoreConfigletBuilderList:      rmbKeys,
 			IgnoreConfigletBuilderNamesList: rmbNames,
-			ToID:                            dev.SystemMacAddress,
-			ToIDType:                        "netelement",
-			FromID:                          "",
-			NodeName:                        "",
-			NodeIPAddress:                   dev.IPAddress,
-			NodeTargetIPAddress:             dev.IPAddress,
-			FromName:                        "",
-			ToName:                          dev.Fqdn,
-			ChildTasks:                      []string{},
-			ParentTask:                      "",
+			ToID:                dev.SystemMacAddress,
+			ToIDType:            "netelement",
+			FromID:              "",
+			NodeName:            "",
+			NodeIPAddress:       dev.IPAddress,
+			NodeTargetIPAddress: dev.IPAddress,
+			FromName:            "",
+			ToName:              dev.Fqdn,
+			ChildTasks:          []string{},
+			ParentTask:          "",
 		},
 	}}
 	if err := c.addTempAction(data); err != nil {
@@ -823,10 +1051,10 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 		return nil, errors.Errorf("GetImageBundleByName: %s", err)
 	}
 	ret := &ImageBundleInfo{
-		AppliedContainersCount:   resp.AppliedContainersCount,
-		AppliedDevicesCount:      resp.AppliedDevicesCount,
-		FactoryID:                resp.FactoryID,
-		ID:                       1,
+		AppliedContainersCount: resp.AppliedContainersCount,
+		AppliedDevicesCount:    resp.AppliedDevicesCount,
+		FactoryID:              resp.FactoryID,
+		ID:                     1,
 		IsCertifiedImageBundle:   resp.IsCertifiedImageBundle,
 		ImageIds:                 resp.ImageIds,
 		Images:                   resp.Images,
@@ -835,7 +1063,7 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 		Note:                     resp.Note,
 		UploadedBy:               resp.UploadedBy,
 		UploadedDateinLongFormat: resp.UploadedDateinLongFormat,
-		User:                     resp.User,
+		User: resp.User,
 	}
 	return ret, nil
 
