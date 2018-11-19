@@ -104,6 +104,14 @@ type ConfigletOpReturn struct {
 	ErrorResponse
 }
 
+// ConfigletUpdateReturn ...
+type ConfigletUpdateReturn struct {
+	Data    string   `json:"data"`
+	TaskIDs []string `json:"taskIds"`
+
+	ErrorResponse
+}
+
 // ConfigletVerifyResp represents
 type ConfigletVerifyResp struct {
 	ID      string `json:"id,omitempty"`
@@ -241,37 +249,56 @@ func (c CvpRestAPI) DeleteConfiglet(name string, key string) error {
 	return nil
 }
 
-// UpdateConfiglet updates a configlet.
-func (c CvpRestAPI) UpdateConfiglet(config string, name string, key string,
-	waitForTaskIds bool) error {
-	var info ErrorResponse
+// updateConfiglet updates a configlet.
+func (c CvpRestAPI) updateConfiglet(config string, name string, key string,
+	waitForTaskIds bool) (*ConfigletUpdateReturn, error) {
+	var info ConfigletUpdateReturn
 
 	data := struct {
-		Config string   `json:"config"`
-		Key string `json:"key"`
-		Name     string   `json:"name"`
-		WaitForTaskIds bool `json:"waitForTaskIds,omitempty"`
+		Config         string `json:"config"`
+		Key            string `json:"key"`
+		Name           string `json:"name"`
+		WaitForTaskIds bool   `json:"waitForTaskIds,omitempty"`
 	}{
-		Config: config,
-		Key: key,
-		Name:     name,
+		Config:         config,
+		Key:            key,
+		Name:           name,
 		WaitForTaskIds: waitForTaskIds,
 	}
 
 	resp, err := c.client.Post("/configlet/updateConfiglet.do", nil, data)
 	if err != nil {
-		return errors.Errorf("UpdateConfiglet: %s", err)
+		return nil, errors.Errorf("updateConfiglet: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("UpdateConfiglet: %s", err)
+		return nil, errors.Errorf("updateConfiglet: %s", err)
 	}
 
 	if err := info.Error(); err != nil {
-		return errors.Errorf("UpdateConfiglet: %s", err)
+		return nil, errors.Errorf("updateConfiglet: %s", err)
 	}
 
+	return &info, nil
+}
+
+// UpdateConfiglet updates a configlet.
+func (c CvpRestAPI) UpdateConfiglet(config string, name string, key string) error {
+	_, err := c.updateConfiglet(config, name, key, false)
+	if err != nil {
+		return errors.Errorf("UpdateConfiglet: %s", err)
+	}
 	return nil
+}
+
+// UpdateConfigletWaitForTask updates a configlet and waits for tasks to be returned.
+func (c CvpRestAPI) UpdateConfigletWaitForTask(config string, name string, key string) ([]string,
+	error) {
+	data, err := c.updateConfiglet(config, name, key, true)
+	if err != nil {
+		return nil, errors.Errorf("UpdateConfigletWaitForTask: %s", err)
+	}
+	return data.TaskIDs, nil
 }
 
 // AddConfigletNote creates/adds a configlet note
