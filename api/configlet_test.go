@@ -251,7 +251,7 @@ func Test_CvpUpdateConfigletRetError_UnitTest(t *testing.T) {
 	client := NewMockClient("", clientErr)
 	api := NewCvpRestAPI(client)
 
-	err := api.UpdateConfiglet("config", "name", "key")
+	err := api.UpdateConfiglet("config", "name", "key", false)
 	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: %v Got: %v", expectedErr, err)
 	}
@@ -260,7 +260,7 @@ func Test_CvpUpdateConfigletRetError_UnitTest(t *testing.T) {
 func Test_CvpUpdateConfigletJsonError_UnitTest(t *testing.T) {
 	client := NewMockClient("{", nil)
 	api := NewCvpRestAPI(client)
-	if err := api.UpdateConfiglet("config", "name", "key"); err == nil {
+	if err := api.UpdateConfiglet("config", "name", "key", false); err == nil {
 		t.Fatal("JSON unmarshal error should be returned")
 	}
 }
@@ -268,7 +268,7 @@ func Test_CvpUpdateConfigletJsonError_UnitTest(t *testing.T) {
 func Test_CvpUpdateConfigletEmptyJsonError_UnitTest(t *testing.T) {
 	client := NewMockClient("", nil)
 	api := NewCvpRestAPI(client)
-	if err := api.UpdateConfiglet("config", "name", "key"); err == nil {
+	if err := api.UpdateConfiglet("config", "name", "key", false); err == nil {
 		t.Fatal("JSON unmarshal error should be returned")
 	}
 }
@@ -279,7 +279,7 @@ func Test_CvpUpdateConfigletReturnError_UnitTest(t *testing.T) {
 
 	client := NewMockClient(respStr, nil)
 	api := NewCvpRestAPI(client)
-	if err := api.UpdateConfiglet("config", "name", "key"); err == nil {
+	if err := api.UpdateConfiglet("config", "name", "key", false); err == nil {
 		t.Fatal("Error should be returned")
 	}
 }
@@ -288,7 +288,7 @@ func Test_CvpUpdateConfigletValid_UnitTest(t *testing.T) {
 	client := NewMockClient("{}", nil)
 	api := NewCvpRestAPI(client)
 
-	err := api.UpdateConfiglet("config", "name", "key")
+	err := api.UpdateConfiglet("config", "name", "key", false)
 	if err != nil {
 		t.Fatalf("Valid case failed with error: %v", err)
 	}

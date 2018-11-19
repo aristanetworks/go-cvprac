@@ -242,13 +242,20 @@ func (c CvpRestAPI) DeleteConfiglet(name string, key string) error {
 }
 
 // UpdateConfiglet updates a configlet.
-func (c CvpRestAPI) UpdateConfiglet(config string, name string, key string) error {
+func (c CvpRestAPI) UpdateConfiglet(config string, name string, key string,
+	waitForTaskIds bool) error {
 	var info ErrorResponse
 
-	data := map[string]string{
-		"config": config,
-		"key":    key,
-		"name":   name,
+	data := struct {
+		Config string   `json:"config"`
+		Key string `json:"key"`
+		Name     string   `json:"name"`
+		WaitForTaskIds bool `json:"waitForTaskIds,omitempty"`
+	}{
+		Config: config,
+		Key: key,
+		Name:     name,
+		WaitForTaskIds: waitForTaskIds,
 	}
 
 	resp, err := c.client.Post("/configlet/updateConfiglet.do", nil, data)

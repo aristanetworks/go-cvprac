@@ -118,7 +118,7 @@ func CreateTask(c *CvpRestAPI) (int, string, error) {
 	}
 	configlet.Config = config
 
-	if err := c.UpdateConfiglet(config, configlet.Name, configlet.Key); err != nil {
+	if err := c.UpdateConfiglet(config, configlet.Name, configlet.Key, false); err != nil {
 		return 0, "", err
 	}
 
