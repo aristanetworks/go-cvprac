@@ -268,15 +268,15 @@ func (c CvpRestAPI) updateConfiglet(config string, name string, key string,
 
 	resp, err := c.client.Post("/configlet/updateConfiglet.do", nil, data)
 	if err != nil {
-		return nil, errors.Errorf("updateConfiglet: %s", err)
+		return nil, err
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("updateConfiglet: %s", err)
+		return nil, err
 	}
 
 	if err := info.Error(); err != nil {
-		return nil, errors.Errorf("updateConfiglet: %s", err)
+		return nil, err
 	}
 
 	return &info, nil

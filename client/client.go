@@ -300,21 +300,23 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 	data interface{}) ([]byte, error) {
 	var err error
 	var resp *resty.Response
+	var formatedParams map[string]string
 
 	retryCnt := NumRetryRequests
 
-	request := c.Client.R()
-
 	if params != nil {
-		formatedParams, err := parseURLValues(params)
+		formatedParams, err = parseURLValues(params)
 		if err != nil {
 			return nil, err
 		}
-		request.SetQueryParams(formatedParams)
 	}
 
 	nodeCnt := len(c.Hosts)
 	for nodeCnt > 0 {
+
+		request := c.Client.R()
+		request.SetQueryParams(formatedParams)
+
 		// If we've seen an error
 		if err != nil {
 			// Decrement count as another node will be tried, if there
@@ -359,14 +361,20 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 			err = errors.Errorf("Status: %d", status)
 			continue
 		}
-		// client error
-		if status >= 400 && status < 500 {
-			// retry another session
-			err = errors.Errorf("Status: %d", status)
+		// From 2018.2.0 onwards, a '401' response is returned for
+		// an 'Unauthorized' user, unlike previous releases where a
+		// CvpError with code '112498' was returned. This might happen
+		// if the session expires, which is after 12 hours of inactivity.
+		// In this case, the session must be refreshed. Retry same host.
+		if status == 401 {
+			retryCnt--
+			if retryCnt <= 0 {
+				err = errors.Errorf("Status: %d", status)
+			}
 			continue
 		}
-		// server error
-		if status >= 500 && status < 600 {
+		// client error
+		if status != http.StatusOK {
 			// retry another session
 			err = errors.Errorf("Status: %d", status)
 			continue
@@ -376,18 +384,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		if err = json.Unmarshal(resp.Body(), &info); err == nil {
 			// check and see if we have a CVP error payload
 			if err = info.Error(); err != nil {
-				// Unauthorized User
-				if info.ErrorCode == "112498" {
-					// retry to same node/host
-					// Unauthorized User error because this is how CVP responds
-					// to a logged out users requests in 2017.1 and beyond.
-					//  Reset the session which will login. If a valid
-					// session comes back then clear the error so this request
-					// will be retried on the same node.
-					c.Client.SetHeaders(c.Headers)
-					retryCnt--
-					continue
-				}
+				return nil, err
 			}
 		}
 		break
