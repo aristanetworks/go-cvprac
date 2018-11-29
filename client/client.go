@@ -300,12 +300,12 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 	data interface{}) ([]byte, error) {
 	var err error
 	var resp *resty.Response
-	var formatedParams map[string]string
+	var formattedParams map[string]string
 
 	retryCnt := NumRetryRequests
 
 	if params != nil {
-		formatedParams, err = parseURLValues(params)
+		formattedParams, err = parseURLValues(params)
 		if err != nil {
 			return nil, err
 		}
@@ -315,7 +315,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 	for nodeCnt > 0 {
 
 		request := c.Client.R()
-		request.SetQueryParams(formatedParams)
+		request.SetQueryParams(formattedParams)
 
 		// If we've seen an error
 		if err != nil {
