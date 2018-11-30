@@ -197,45 +197,32 @@ func NewCvpClient(options ...Option) (*CvpClient, error) {
 	if err := c.SetOption(options...); err != nil {
 		return nil, err
 	}
+
 	c.HostPool, err = NewHostIterator(c.Hosts)
 	if err != nil {
 		return nil, err
 	}
-
-	c.Client = resty.New().SetHeaders(headers)
 
 	c.API = cvpapi.NewCvpRestAPI(c)
 
 	return c, nil
 }
 
+// GetPort returns the port this client will use for connectivity
+func (c *CvpClient) GetPort() int {
+	if c.Port != UNDEFPORT {
+		return c.Port
+	}
+
+	if c.Protocol == "https" {
+		return 443
+	}
+	return 80
+}
+
 // GetSessionID returns the current Session ID
 func (c *CvpClient) GetSessionID() string {
 	return c.SessID
-}
-
-func (c *CvpClient) initSession(host string) error {
-	var port int
-
-	c.Client.SetHeaders(c.Headers)
-
-	if c.Protocol == "https" {
-		port = 443
-		c.Client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	} else {
-		port = 80
-	}
-
-	if c.Port != UNDEFPORT {
-		port = c.Port
-	}
-
-	// formulate and set our base url
-	c.url = fmt.Sprintf("%s://%s:%d/web", c.Protocol, host, port)
-	c.Client.SetHostURL(c.url)
-	c.Client.SetTimeout(c.Timeout)
-	c.Client.SetDebug(c.Debug)
-	return nil
 }
 
 // Connect Login to CVP and get a session ID and cookie.
@@ -249,7 +236,6 @@ func (c *CvpClient) Connect(username string, password string) error {
 }
 
 func (c *CvpClient) createSession(allNodes bool) error {
-	var err error
 	var errorMsg []string
 
 	numNodes := len(c.Hosts)
@@ -259,13 +245,12 @@ func (c *CvpClient) createSession(allNodes bool) error {
 	for nodeIter := 0; nodeIter < numNodes; nodeIter++ {
 		host := c.HostPool.Cycle()
 
-		c.initSession(host)
-		if err = c.login(); err != nil {
+		if err := c.resetSession(host); err != nil {
 			tmpMsg := fmt.Sprintf("createSession: Host %s Error: %s", host, err.Error())
 			errorMsg = append(errorMsg, tmpMsg)
-		} else {
-			return nil
+			continue
 		}
+		return nil
 	}
 	return errors.New(strings.Join(errorMsg, "\n"))
 }
@@ -281,18 +266,40 @@ func (c *CvpClient) login() error {
 
 	resp, err := request.SetBody(auth).Post("/login/authenticate.do")
 	if err != nil {
-		return errors.Wrapf(err, "login")
+		return errors.Wrap(err, "login")
 	}
 
 	if err = checkResponse(resp); err != nil {
-		return errors.Wrapf(err, "checkResponse failed")
+		return errors.Wrap(err, "login")
 	}
 
 	if err = json.Unmarshal(resp.Body(), &loginResp); err != nil {
-		return errors.Wrapf(err, "unmarshal failed")
+		return errors.Wrap(err, "login")
 	}
 	c.SessID = loginResp.SessionID
 
+	return nil
+}
+
+func (c *CvpClient) resetSession(host string) error {
+	c.Client = resty.New()
+	port := c.GetPort()
+
+	if host != "" {
+		c.url = fmt.Sprintf("%s://%s:%d/web", c.Protocol, host, port)
+	}
+
+	if c.Protocol == "https" {
+		c.Client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+	c.Client.SetHostURL(c.url)
+	c.Client.SetHeaders(c.Headers)
+	c.Client.SetTimeout(c.Timeout)
+	c.Client.SetDebug(c.Debug)
+
+	if err := c.login(); err != nil {
+		return errors.Wrap(err, "resetSession")
+	}
 	return nil
 }
 
@@ -301,6 +308,10 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 	var err error
 	var resp *resty.Response
 	var formattedParams map[string]string
+
+	if c.Client == nil {
+		return nil, errors.Errorf("makeRequest: No valid session to CVP [%s]", c.url)
+	}
 
 	retryCnt := NumRetryRequests
 
@@ -331,8 +342,10 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 				return nil, err
 			}
 			retryCnt = NumRetryRequests
-			err = nil
 		}
+
+		// Clear our errors
+		err = nil
 
 		// Check reqType
 		switch reqType {
@@ -358,7 +371,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 
 		if status == 301 {
 			// retry another session
-			err = errors.Errorf("Status: %d", status)
+			err = errors.Errorf("Status [%d]", status)
 			continue
 		}
 		// From 2018.2.0 onwards, a '401' response is returned for
@@ -368,15 +381,22 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		// In this case, the session must be refreshed. Retry same host.
 		if status == 401 {
 			retryCnt--
-			if retryCnt <= 0 {
-				err = errors.Errorf("Status: %d", status)
+			if retryCnt > 0 {
+				// reset our session
+				if err := c.resetSession(""); err != nil {
+					// try another session
+					err = errors.Wrap(err, "makeRequest")
+				}
+			} else {
+				err = errors.Errorf("Status [%d]", status)
 			}
 			continue
 		}
+
 		// client error
 		if status != http.StatusOK {
 			// retry another session
-			err = errors.Errorf("Status: %d", status)
+			err = errors.Errorf("Status [%d]", status)
 			continue
 		}
 
@@ -418,7 +438,7 @@ func checkResponse(resp *resty.Response) error {
 	// Underlying request issue. Could be getsockopt error (like network not reachable)
 	if resp.RawResponse == nil {
 		// retry another session
-		return errors.New("RawResponse error")
+		return errors.New("checkResponse: RawResponse error")
 	}
 
 	status := resp.StatusCode()
@@ -429,11 +449,11 @@ func checkResponse(resp *resty.Response) error {
 
 	var info cvpapi.ErrorResponse
 	if err := json.Unmarshal(resp.Body(), &info); err != nil {
-		return errors.Wrapf(err, "checkResponse unmarshal error")
+		return errors.Wrap(err, "checkResponse")
 	}
 
 	if err := info.Error(); err != nil {
-		return errors.Wrapf(err, "checkResponse Request error")
+		return errors.Wrap(err, "checkResponse")
 	}
 	return nil
 }
