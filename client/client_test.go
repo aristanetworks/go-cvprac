@@ -207,10 +207,63 @@ func TestCvpRac_ClientStatusBadRequest_UnitTest(t *testing.T) {
 	_, err = cvpClient.Post("/StatusBadRequest-test", nil, nil)
 	assert(t, err != nil, "POST returned no error when it should have "+
 		"returned StatusBadRequest(400)")
-	assert(t, err.Error() == "Status: 400", "Got: %s", err)
+	assert(t, err.Error() == "Status [400]", "Got: %s", err)
 }
 
-func TestCvpRac_ClientRetry_UnitTest(t *testing.T) {
+func TestCvpRac_ClientRetrySingleHost_UnitTest(t *testing.T) {
+	ts1 := createServer(t)
+	defer ts1.Close()
+
+	host, port, err := parseURL(ts1.URL)
+	if err != nil {
+		t.Fatalf("Parsing test server URL: %s", err)
+	}
+
+	hosts := []string{host}
+
+	cvpClient, _ := NewCvpClient(
+		Protocol("http"),
+		Hosts(hosts...),
+		Port(port),
+		Debug(*debugFlag))
+
+	err = cvpClient.Connect("cvpadmin", "cvp123")
+	ok(t, err)
+
+	_, err = cvpClient.Post("/retrycount-test", nil, nil)
+	ok(t, err)
+
+	_, err = cvpClient.Post("/StatusMovedPermanently-test", nil, nil)
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusMovedPermanently(301)")
+
+	_, err = cvpClient.Post("/StatusBadRequest-test", nil, nil)
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusBadRequest(400)")
+	assert(t, err.Error() == "Status [400]", "Got: %s", err)
+
+	_, err = cvpClient.Post("/StatusUnauthorized-test", nil, nil)
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusUnauthorized(401)")
+	assert(t, err.Error() == "Status [401]", "Got: %s", err)
+
+	_, err = cvpClient.Post("/StatusForbidden-test", nil, nil)
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusForbidden(403)")
+	assert(t, err.Error() == "Status [403]", "Got: %s", err)
+
+	_, err = cvpClient.Post("/StatusNotFound-test", nil, nil)
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusNotFound(404)")
+	assert(t, err.Error() == "Status [404]", "Got: %s", err)
+
+	_, err = cvpClient.Post("/StatusInternalServerError-test", nil, nil)
+	assert(t, err != nil, "POST returned no error when it should have "+
+		"returned StatusInternalServerError(500).")
+	assert(t, err.Error() == "Status [500]", "Got: %s", err)
+}
+
+func TestCvpRac_ClientRetry_MultiHost_UnitTest(t *testing.T) {
 	ts1 := createServer(t)
 	defer ts1.Close()
 
@@ -240,27 +293,27 @@ func TestCvpRac_ClientRetry_UnitTest(t *testing.T) {
 	_, err = cvpClient.Post("/StatusBadRequest-test", nil, nil)
 	assert(t, err != nil, "POST returned no error when it should have "+
 		"returned StatusBadRequest(400)")
-	assert(t, err.Error() == "Status: 400", "Got: %s", err)
+	assert(t, err.Error() == "Status [400]", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusUnauthorized-test", nil, nil)
 	assert(t, err != nil, "POST returned no error when it should have "+
 		"returned StatusUnauthorized(401)")
-	assert(t, err.Error() == "Status: 401", "Got: %s", err)
+	assert(t, err.Error() == "Status [401]", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusForbidden-test", nil, nil)
 	assert(t, err != nil, "POST returned no error when it should have "+
 		"returned StatusForbidden(403)")
-	assert(t, err.Error() == "Status: 403", "Got: %s", err)
+	assert(t, err.Error() == "Status [403]", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusNotFound-test", nil, nil)
 	assert(t, err != nil, "POST returned no error when it should have "+
 		"returned StatusNotFound(404)")
-	assert(t, err.Error() == "Status: 404", "Got: %s", err)
+	assert(t, err.Error() == "Status [404]", "Got: %s", err)
 
 	_, err = cvpClient.Post("/StatusInternalServerError-test", nil, nil)
 	assert(t, err != nil, "POST returned no error when it should have "+
 		"returned StatusInternalServerError(500).")
-	assert(t, err.Error() == "Status: 500", "Got: %s", err)
+	assert(t, err.Error() == "Status [500]", "Got: %s", err)
 }
 
 func createServer(t *testing.T) *httptest.Server {
@@ -287,19 +340,19 @@ func createServer(t *testing.T) *httptest.Server {
 				if creds["userId"] == "deny2" {
 					if attp == 2 {
 						w.WriteHeader(http.StatusOK)
-						_, _ = w.Write([]byte(`{ "message": "Accepted" }`))
+						fmt.Fprintf(w, `{ "message": "Accepted", "attempt": %d }`, attp)
 					} else {
 						w.WriteHeader(http.StatusUnauthorized)
-						_, _ = w.Write([]byte(
-							`{ "id": "StatusUnauthorized", "message": "nope. retry" }`))
+						fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope. retry", `+
+							`"attempt": %d }`, attp)
 					}
 				} else if creds["userId"] == "denyAll" {
 					w.WriteHeader(http.StatusUnauthorized)
-					_, _ = w.Write([]byte(
-						`{ "id": "StatusUnauthorized", "message": "nope. retry" }`))
+					fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope. retry", `+
+						`"attempt": %d }`, attp)
 				} else {
 					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte(`{ "message": "Accepted" }`))
+					fmt.Fprintf(w, `{ "message": "Accepted", "attempt": %d }`, attp)
 				}
 			} else if r.URL.Path == "/web/retrycount-test" {
 				attp := atomic.AddInt32(&attempt, 1)
@@ -307,47 +360,54 @@ func createServer(t *testing.T) *httptest.Server {
 				if attp <= 3 {
 					time.Sleep(time.Second * 6)
 				}
-				_, _ = w.Write([]byte(`{ "message": "ClientRetry" }`))
-
+				fmt.Fprintf(w, `{ "message": "ClientRetry", "attempt": %d }`, attp)
 			} else if r.URL.Path == "/web/StatusMovedPermanently-test" {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusMovedPermanently)
-				_, _ = w.Write([]byte(`{ "id": "StatusMovedPermanently", "message": "moved" }`))
-
+				fmt.Fprintf(w, `{ "id": "StatusMovedPermanently", "message": "moved", `+
+					`"attempt": %d }`, attp)
 			} else if r.URL.Path == "/web/StatusBadRequest-test" {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusBadRequest)
-				_, _ = w.Write([]byte(`{ "id": "bad_request", "message": "bad" }`))
-
+				fmt.Fprintf(w, `{ "id": "bad_request", "message": "bad", `+
+					`"attempt": %d }`, attp)
 			} else if r.URL.Path == "/web/StatusUnauthorized-test" {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusUnauthorized)
-				_, _ = w.Write([]byte(`{ "id": "StatusUnauthorized", "message": "nope" }`))
-
+				fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope", `+
+					`"attempt": %d }`, attp)
 			} else if r.URL.Path == "/web/StatusForbidden-test" {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusForbidden)
+				fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope", `+
+					`"attempt": %d }`, attp)
 				_, _ = w.Write([]byte(`{ "id": "StatusForbidden", "message": "nope" }`))
-
 			} else if r.URL.Path == "/web/StatusNotFound-test" {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusNotFound)
+				fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope", `+
+					`"attempt": %d }`, attp)
 				_, _ = w.Write([]byte(`{ "id": "StatusNotFound", "message": "not found" }`))
 
 			} else if r.URL.Path == "/web/StatusInternalServerError-test" {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope", `+
+					`"attempt": %d }`, attp)
 				_, _ = w.Write([]byte(
 					`{ "id": "StatusInternalServerError", "message": "server error" }`))
 
 			} else {
+				attp := atomic.AddInt32(&attempt, 1)
 				w.WriteHeader(http.StatusOK)
+				fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope", `+
+					`"attempt": %d }`, attp)
 				_, _ = w.Write([]byte(`{ "message": "Bad" }`))
 			}
 		}
