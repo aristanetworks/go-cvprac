@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2017 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2018 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -110,13 +110,15 @@ func (r *Request) SetMultiValueQueryParams(params url.Values) *Request {
 //			SetQueryString("productId=232&template=fresh-sample&cat=resty&source=google&kw=buy a lot more")
 //
 func (r *Request) SetQueryString(query string) *Request {
-	values, err := url.ParseQuery(strings.TrimSpace(query))
+	params, err := url.ParseQuery(strings.TrimSpace(query))
 	if err == nil {
-		for k := range values {
-			r.QueryParam.Add(k, values.Get(k))
+		for p, v := range params {
+			for _, pv := range v {
+				r.QueryParam.Add(p, pv)
+			}
 		}
 	} else {
-		r.client.Log.Printf("ERROR [%v]", err)
+		r.client.Log.Printf("ERROR %v", err)
 	}
 	return r
 }
@@ -157,10 +159,12 @@ func (r *Request) SetMultiValueFormData(params url.Values) *Request {
 	return r
 }
 
-// SetBody method sets the request body for the request. It supports various realtime need easy.
-// We can say its quite handy or powerful. Supported request body data types is `string`, `[]byte`,
-// `struct` and `map`. Body value can be pointer or non-pointer. Automatic marshalling
-// for JSON and XML content type, if it is `struct` or `map`.
+// SetBody method sets the request body for the request. It supports various realtime needs as easy.
+// We can say its quite handy or powerful. Supported request body data types is `string`,
+// `[]byte`, `struct`, `map`, `slice` and `io.Reader`. Body value can be pointer or non-pointer.
+// Automatic marshalling for JSON and XML content type, if it is `struct`, `map`, or `slice`.
+//
+// Note: `io.Reader` is processed as bufferless mode while sending request.
 //
 // Example:
 //
@@ -279,6 +283,20 @@ func (r *Request) SetFileReader(param, fileName string, reader io.Reader) *Reque
 	return r
 }
 
+// SetMultipartField method is to set custom data using io.Reader for multipart upload.
+func (r *Request) SetMultipartField(param, fileName, contentType string, reader io.Reader) *Request {
+	r.isMultiPart = true
+
+	r.multipartFields = append(r.multipartFields, &multipartField{
+		Param:       param,
+		FileName:    fileName,
+		ContentType: contentType,
+		Reader:      reader,
+	})
+
+	return r
+}
+
 // SetContentLength method sets the HTTP header `Content-Length` value for current request.
 // By default go-resty won't set `Content-Length`. Also you have an option to enable for every
 // request. See `resty.SetContentLength`
@@ -354,10 +372,37 @@ func (r *Request) SetDoNotParseResponse(parse bool) *Request {
 	return r
 }
 
+// SetPathParams method sets multiple URL path key-value pairs at one go in the
+// resty current request instance.
+// 		resty.R().SetPathParams(map[string]string{
+// 		   "userId": "sample@sample.com",
+// 		   "subAccountId": "100002",
+// 		})
+//
+// 		Result:
+// 		   URL - /v1/users/{userId}/{subAccountId}/details
+// 		   Composed URL - /v1/users/sample@sample.com/100002/details
+// It replace the value of the key while composing request URL. Also you can
+// override Path Params value, which was set at client instance level.
+func (r *Request) SetPathParams(params map[string]string) *Request {
+	for p, v := range params {
+		r.pathParams[p] = v
+	}
+	return r
+}
+
 // ExpectContentType method allows to provide fallback `Content-Type` for automatic unmarshalling
 // when `Content-Type` response header is unavailable.
 func (r *Request) ExpectContentType(contentType string) *Request {
 	r.fallbackContentType = contentType
+	return r
+}
+
+// SetJSONEscapeHTML method is to enable/disable the HTML escape on JSON marshal.
+//
+// NOTE: This option only applicable to standard JSON Marshaller.
+func (r *Request) SetJSONEscapeHTML(b bool) *Request {
+	r.jsonEscapeHTML = b
 	return r
 }
 
@@ -409,7 +454,7 @@ func (r *Request) Execute(method, url string) (*Response, error) {
 	var err error
 
 	if r.isMultiPart && !(method == MethodPost || method == MethodPut) {
-		return nil, fmt.Errorf("Multipart content is not allowed in HTTP verb [%v]", method)
+		return nil, fmt.Errorf("multipart content is not allowed in HTTP verb [%v]", method)
 	}
 
 	if r.SRV != nil {
@@ -436,7 +481,7 @@ func (r *Request) Execute(method, url string) (*Response, error) {
 
 			resp, err = r.client.execute(r)
 			if err != nil {
-				r.client.Log.Printf("ERROR [%v] Attempt [%v]", err, attempt)
+				r.client.Log.Printf("ERROR %v, Attempt %v", err, attempt)
 				if r.isContextCancelledIfAvailable() {
 					// stop Backoff from retrying request if request has been
 					// canceled by context
@@ -462,9 +507,14 @@ func (r *Request) Execute(method, url string) (*Response, error) {
 func (r *Request) fmtBodyString() (body string) {
 	body = "***** NO CONTENT *****"
 	if isPayloadSupported(r.Method, r.client.AllowGetMethodPayload) {
+		if _, ok := r.Body.(io.Reader); ok {
+			body = "***** BODY IS io.Reader *****"
+			return
+		}
+
 		// multipart or form-data
 		if r.isMultiPart || r.isFormData {
-			body = string(r.bodyBuf.Bytes())
+			body = r.bodyBuf.String()
 			return
 		}
 
