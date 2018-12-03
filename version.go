@@ -28,6 +28,9 @@
 // OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 // IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
+
+// Package cvprac provides client and api for Cloud Vision Portal
 package cvprac
 
+// Version of library
 const Version string = "v2.1.1"
