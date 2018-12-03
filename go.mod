@@ -1,4 +1,4 @@
-module github.com/aristanetworks/go-cvprac
+module github.com/aristanetworks/go-cvprac/v2
 
 require (
 	github.com/pkg/errors v0.0.0-20171018195549-f15c970de5b7
