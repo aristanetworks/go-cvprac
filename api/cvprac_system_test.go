@@ -360,8 +360,9 @@ func TestCvpRac_CheckCompliance_SystemTest(t *testing.T) {
 	ok(t, err)
 	assert(t, res.ComplianceCode == "0000", "Expected: \"0000\", Got: \"%s\"",
 		res.ComplianceCode)
-	assert(t, res.ComplianceIndication == "NONE", "Expected: \"NONE\", Got: \"%s\"",
+	assert(t, res.ComplianceIndication == "", "Expected: \"\", Got: \"%s\"",
 		res.ComplianceIndication)
+
 }
 
 func TestCvpRac_GetParentContainerForDevice_SystemTest(t *testing.T) {
