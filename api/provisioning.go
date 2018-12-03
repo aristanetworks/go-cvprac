@@ -48,30 +48,30 @@ type ConfigCompareCount struct {
 
 // Action request structure for saveTopology
 type Action struct {
-	Action                          string             `json:"action"`
-	ConfigCompareCount              ConfigCompareCount `json:"configCompareCount,omitempty"`
-	ConfigletBuilderList            []string           `json:"configletBuilderList,omitempty"`
-	ConfigletBuilderNamesList       []string           `json:"configletBuilderNamesList,omitempty"`
-	ConfigletList                   []string           `json:"configletList,omitempty"`
-	ConfigletNamesList              []string           `json:"configletNamesList,omitempty"`
-	FromID                          string             `json:"fromId"`
-	FromName                        string             `json:"fromName"`
-	IgnoreConfigletBuilderList      []string           `json:"ignoreConfigletBuilderList,omitempty"`
-	IgnoreConfigletBuilderNamesList []string           `json:"ignoreConfigletBuilderNamesList,omitempty"`
-	IgnoreConfigletList             []string           `json:"ignoreConfigletList,omitempty"`
-	IgnoreConfigletNamesList        []string           `json:"ignoreConfigletNamesList,omitempty"`
-	IgnoreNodeID                    string             `json:"ignoreNodeId,omitempty"`
-	IgnoreNodeName                  string             `json:"ignoreNodeName,omitempty"`
-	Info                            string             `json:"info"`
-	InfoPreview                     string             `json:"infoPreview"`
-	NodeID                          string             `json:"nodeId"`
-	NodeIPAddress                   string             `json:"nodeIpAddress,omitempty"`
-	NodeName                        string             `json:"nodeName"`
-	NodeTargetIPAddress             string             `json:"nodeTargetIpAddress,omitempty"`
-	NodeType                        string             `json:"nodeType"`
-	ToID                            string             `json:"toId"`
-	ToIDType                        string             `json:"toIdType"`
-	ToName                          string             `json:"toName"`
+	Action                          string              `json:"action"`
+	ConfigCompareCount              *ConfigCompareCount `json:"configCompareCount,omitempty"`
+	ConfigletBuilderList            []string            `json:"configletBuilderList,omitempty"`
+	ConfigletBuilderNamesList       []string            `json:"configletBuilderNamesList,omitempty"`
+	ConfigletList                   []string            `json:"configletList,omitempty"`
+	ConfigletNamesList              []string            `json:"configletNamesList,omitempty"`
+	FromID                          string              `json:"fromId"`
+	FromName                        string              `json:"fromName"`
+	IgnoreConfigletBuilderList      []string            `json:"ignoreConfigletBuilderList,omitempty"`
+	IgnoreConfigletBuilderNamesList []string            `json:"ignoreConfigletBuilderNamesList,omitempty"`
+	IgnoreConfigletList             []string            `json:"ignoreConfigletList,omitempty"`
+	IgnoreConfigletNamesList        []string            `json:"ignoreConfigletNamesList,omitempty"`
+	IgnoreNodeID                    string              `json:"ignoreNodeId,omitempty"`
+	IgnoreNodeName                  string              `json:"ignoreNodeName,omitempty"`
+	Info                            string              `json:"info"`
+	InfoPreview                     string              `json:"infoPreview"`
+	NodeID                          string              `json:"nodeId"`
+	NodeIPAddress                   string              `json:"nodeIpAddress,omitempty"`
+	NodeName                        string              `json:"nodeName"`
+	NodeTargetIPAddress             string              `json:"nodeTargetIpAddress,omitempty"`
+	NodeType                        string              `json:"nodeType"`
+	ToID                            string              `json:"toId"`
+	ToIDType                        string              `json:"toIdType"`
+	ToName                          string              `json:"toName"`
 
 	CCID                 string   `json:"ccId,omitempty"`
 	ID                   int      `json:"id,omitempty"`
@@ -534,9 +534,9 @@ func (c CvpRestAPI) ValidateAndApplyConfigletsToDevice(appName string, dev *NetE
 	}
 	// If validation returned a proper validation response pull the config compare count values
 	// to be applied to the Action data
-	var confCompCount ConfigCompareCount
+	var confCompCount *ConfigCompareCount
 	if validateResp != nil {
-		confCompCount = ConfigCompareCount{
+		confCompCount = &ConfigCompareCount{
 			Mismatch:  validateResp.Mismatch,
 			New:       validateResp.New,
 			Reconcile: validateResp.Reconcile,
@@ -643,16 +643,16 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 			IgnoreConfigletNamesList:        rmNames,
 			IgnoreConfigletBuilderList:      rmbKeys,
 			IgnoreConfigletBuilderNamesList: rmbNames,
-			ToID:                dev.SystemMacAddress,
-			ToIDType:            "netelement",
-			FromID:              "",
-			NodeName:            "",
-			NodeIPAddress:       dev.IPAddress,
-			NodeTargetIPAddress: dev.IPAddress,
-			FromName:            "",
-			ToName:              dev.Fqdn,
-			ChildTasks:          []string{},
-			ParentTask:          "",
+			ToID:                            dev.SystemMacAddress,
+			ToIDType:                        "netelement",
+			FromID:                          "",
+			NodeName:                        "",
+			NodeIPAddress:                   dev.IPAddress,
+			NodeTargetIPAddress:             dev.IPAddress,
+			FromName:                        "",
+			ToName:                          dev.Fqdn,
+			ChildTasks:                      []string{},
+			ParentTask:                      "",
 		},
 	}}
 	if err := c.addTempAction(data); err != nil {
@@ -1051,10 +1051,10 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 		return nil, errors.Errorf("GetImageBundleByName: %s", err)
 	}
 	ret := &ImageBundleInfo{
-		AppliedContainersCount: resp.AppliedContainersCount,
-		AppliedDevicesCount:    resp.AppliedDevicesCount,
-		FactoryID:              resp.FactoryID,
-		ID:                     1,
+		AppliedContainersCount:   resp.AppliedContainersCount,
+		AppliedDevicesCount:      resp.AppliedDevicesCount,
+		FactoryID:                resp.FactoryID,
+		ID:                       1,
 		IsCertifiedImageBundle:   resp.IsCertifiedImageBundle,
 		ImageIds:                 resp.ImageIds,
 		Images:                   resp.Images,
@@ -1063,7 +1063,7 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 		Note:                     resp.Note,
 		UploadedBy:               resp.UploadedBy,
 		UploadedDateinLongFormat: resp.UploadedDateinLongFormat,
-		User: resp.User,
+		User:                     resp.User,
 	}
 	return ret, nil
 
