@@ -69,6 +69,7 @@ type NetElement struct {
 	DeviceInfo           string       `json:"deviceInfo"`
 	DeviceStatus         string       `json:"deviceStatus"`
 	ParentContainerID    string       `json:"parentContainerId"`
+	ContainerName        string       `json:"containerName"`
 
 	ErrorResponse
 }
