@@ -203,6 +203,8 @@ func NewCvpClient(options ...Option) (*CvpClient, error) {
 		return nil, err
 	}
 
+	c.Client = resty.New()
+
 	c.API = cvpapi.NewCvpRestAPI(c)
 
 	return c, nil
