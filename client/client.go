@@ -42,7 +42,7 @@ import (
 	"github.com/pkg/errors"
 
 	cvprac "gopkg.in/aristanetworks/go-cvprac.v2"
-	"gopkg.in/aristanetworks/go-cvprac.v2/api"
+	cvpapi "gopkg.in/aristanetworks/go-cvprac.v2/api"
 
 	"net/http"
 
@@ -398,14 +398,6 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 			// retry another session
 			err = errors.Errorf("Status [%d]", status)
 			continue
-		}
-
-		var info cvpapi.ErrorResponse
-		if err = json.Unmarshal(resp.Body(), &info); err == nil {
-			// check and see if we have a CVP error payload
-			if err = info.Error(); err != nil {
-				return nil, err
-			}
 		}
 		break
 	}
