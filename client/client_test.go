@@ -383,32 +383,25 @@ func createServer(t *testing.T) *httptest.Server {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusForbidden)
-				fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope", `+
+				fmt.Fprintf(w, `{ "id": "StatusForbidden", "message": "nope", `+
 					`"attempt": %d }`, attp)
-				_, _ = w.Write([]byte(`{ "id": "StatusForbidden", "message": "nope" }`))
 			} else if r.URL.Path == "/web/StatusNotFound-test" {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusNotFound)
-				fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope", `+
+				fmt.Fprintf(w, `{ "id": "StatusNotFound", "message": "not found", `+
 					`"attempt": %d }`, attp)
-				_, _ = w.Write([]byte(`{ "id": "StatusNotFound", "message": "not found" }`))
-
 			} else if r.URL.Path == "/web/StatusInternalServerError-test" {
 				attp := atomic.AddInt32(&attempt, 1)
 				t.Logf("Attempt: %d", attp)
 				w.WriteHeader(http.StatusInternalServerError)
-				fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope", `+
+				fmt.Fprintf(w, `{ "id": "StatusInternalServerError", "message": "server error", `+
 					`"attempt": %d }`, attp)
-				_, _ = w.Write([]byte(
-					`{ "id": "StatusInternalServerError", "message": "server error" }`))
-
 			} else {
 				attp := atomic.AddInt32(&attempt, 1)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintf(w, `{ "id": "StatusUnauthorized", "message": "nope", `+
+				fmt.Fprintf(w, `{ "message": "Bad", `+
 					`"attempt": %d }`, attp)
-				_, _ = w.Write([]byte(`{ "message": "Bad" }`))
 			}
 		}
 	})

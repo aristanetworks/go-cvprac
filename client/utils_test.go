@@ -69,12 +69,12 @@ func TestCvpRac_HostIterNext_UnitTest(t *testing.T) {
 	status = iter.Next()
 	assert(t, status, "Expected true, Got false")
 	val = iter.Value()
-	assert(t, val == "host2", "Expected host1, Got: %s", val)
+	assert(t, val == "host2", "Expected host2, Got: %s", val)
 
 	status = iter.Next()
 	assert(t, status, "Expected true, Got false")
 	val = iter.Value()
-	assert(t, val == "host3", "Expected host1, Got: %s", val)
+	assert(t, val == "host3", "Expected host3, Got: %s", val)
 
 	status = iter.Next()
 	assert(t, status == false, "Expected false, Got true")
@@ -94,17 +94,17 @@ func TestCvpRac_HostIterCycle_UnitTest(t *testing.T) {
 	assert(t, val == "host1", "Expected host1, Got: %s", val)
 
 	val = iter.Cycle()
-	assert(t, val == "host2", "Expected host1, Got: %s", val)
+	assert(t, val == "host2", "Expected host2, Got: %s", val)
 
 	val = iter.Cycle()
-	assert(t, val == "host3", "Expected host1, Got: %s", val)
+	assert(t, val == "host3", "Expected host3, Got: %s", val)
 
 	val = iter.Cycle()
 	assert(t, val == "host1", "Expected host1, Got: %s", val)
 
 	val = iter.Cycle()
-	assert(t, val == "host2", "Expected host1, Got: %s", val)
+	assert(t, val == "host2", "Expected host2, Got: %s", val)
 
 	val = iter.Cycle()
-	assert(t, val == "host3", "Expected host1, Got: %s", val)
+	assert(t, val == "host3", "Expected host3, Got: %s", val)
 }
