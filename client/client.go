@@ -49,8 +49,22 @@ import (
 	resty "gopkg.in/resty.v1"
 )
 
-// NumRetryRequests specifies the number for retries to attempt
-const NumRetryRequests = 3
+var headers = map[string]string{
+	"Accept":       "application/json",
+	"Content-Type": "application/json",
+	"User-Agent":   "Golang cvprac/" + cvprac.Version,
+}
+
+var (
+	// DefaultTimeOut connection timeout default
+	DefaultTimeOut = time.Duration(60 * time.Second)
+	// DefaultProtocol uses https for default connection
+	DefaultProtocol = "https"
+	// DefaultHosts set to local host ip
+	DefaultHosts = []string{"127.0.0.1"}
+	// NumRetryRequests specifies the number for retries to attempt
+	NumRetryRequests = 3
+)
 
 // UNDEFPORT undefined port
 const UNDEFPORT = -1
@@ -63,18 +77,18 @@ type authInfo struct {
 // CvpClient represents a CVP client api connection
 type CvpClient struct {
 	cvpapi.ClientInterface
-	Hosts    []string
-	HostPool *HostIterator
-	Port     int
-	Protocol string
-	authInfo *authInfo
-	Timeout  time.Duration
-	Client   *resty.Client
-	Headers  map[string]string
-	SessID   string
-	url      string
-	API      *cvpapi.CvpRestAPI
-	Debug    bool
+	Hosts     []string
+	HostPool  *HostIterator
+	Port      int
+	Protocol  string
+	authInfo  *authInfo
+	Timeout   time.Duration
+	Transport http.RoundTripper
+	Client    *resty.Client
+	SessID    string
+	url       string
+	API       *cvpapi.CvpRestAPI
+	Debug     bool
 }
 
 // Option is a Client Option...function that sets a value and returns
@@ -129,6 +143,22 @@ func ConnectTimeout(timeout int) Option {
 			return errors.New("Timeout (seconds) must be >= 0")
 		}
 		c.Timeout = time.Duration(timeout) * time.Second
+		if c.Client != nil {
+			c.Client.SetTimeout(c.Timeout)
+		}
+		return nil
+	}
+}
+
+// Transport sets the connection Transport for this Client
+func Transport(transport http.RoundTripper) Option {
+	return func(c *CvpClient) error {
+		if transport != nil {
+			c.Transport = transport
+			if c.Client != nil {
+				c.Client.SetTransport(transport)
+			}
+		}
 		return nil
 	}
 }
@@ -137,6 +167,9 @@ func ConnectTimeout(timeout int) Option {
 func Debug(enable bool) Option {
 	return func(c *CvpClient) error {
 		c.Debug = enable
+		if c.Client != nil {
+			c.Client.SetDebug(c.Debug)
+		}
 		return nil
 	}
 }
@@ -173,6 +206,12 @@ func (c *CvpClient) SetConnectTimeout(timeout int) error {
 	return c.SetOption(ConnectTimeout(timeout))
 }
 
+// SetTransport sets the connection Transport associated with this
+// connection
+func (c *CvpClient) SetTransport(transport http.RoundTripper) error {
+	return c.SetOption(Transport(transport))
+}
+
 // SetDebug enables or disables debugging.
 func (c *CvpClient) SetDebug(enable bool) error {
 	return c.SetOption(Debug(enable))
@@ -180,30 +219,19 @@ func (c *CvpClient) SetDebug(enable bool) error {
 
 // NewCvpClient creates a new CVP RESTful Client
 func NewCvpClient(options ...Option) (*CvpClient, error) {
-	var err error
-	headers := map[string]string{
-		"Accept":       "application/json",
-		"Content-Type": "application/json",
-		"User-Agent":   "Golang cvprac/" + cvprac.Version,
-	}
 	c := &CvpClient{
-		Headers:  headers,
 		Port:     UNDEFPORT,
-		Protocol: "https",
-		Timeout:  time.Duration(60 * time.Second),
-		Hosts:    []string{"localhost"},
+		Protocol: DefaultProtocol,
+		Timeout:  DefaultTimeOut,
+		Hosts:    DefaultHosts,
 	}
 
+	// Parse Options
 	if err := c.SetOption(options...); err != nil {
 		return nil, err
 	}
 
-	c.HostPool, err = NewHostIterator(c.Hosts)
-	if err != nil {
-		return nil, err
-	}
-
-	c.Client = resty.New()
+	c.initSession(c.Hosts[0])
 
 	c.API = cvpapi.NewCvpRestAPI(c)
 
@@ -247,14 +275,51 @@ func (c *CvpClient) createSession(allNodes bool) error {
 	for nodeIter := 0; nodeIter < numNodes; nodeIter++ {
 		host := c.HostPool.Cycle()
 
-		if err := c.resetSession(host); err != nil {
-			tmpMsg := fmt.Sprintf("createSession: Host %s Error: %s", host, err.Error())
+		c.initSession(host)
+
+		if err := c.login(); err != nil {
+			tmpMsg := fmt.Sprintf("createSession: Error: %s", err.Error())
 			errorMsg = append(errorMsg, tmpMsg)
 			continue
 		}
 		return nil
 	}
 	return errors.New(strings.Join(errorMsg, "\n"))
+}
+
+func (c *CvpClient) initSession(host string) error {
+	if host == "" {
+		return errors.Errorf("initSession: No host provided")
+	}
+
+	c.url = fmt.Sprintf("%s://%s:%d/web", c.Protocol, host, c.GetPort())
+
+	c.Client = resty.New()
+
+	// Make sure to set transport before SetTLSClientConfig()
+	// If Transport is nil, SetTransport() creates a default.
+	c.Client.SetTransport(c.Transport)
+
+	if c.Protocol == "https" {
+		c.Client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+	c.Client.SetHostURL(c.url)
+	c.Client.SetHeaders(headers)
+	c.Client.SetTimeout(c.Timeout)
+	c.Client.SetDebug(c.Debug)
+	return nil
+}
+
+func (c *CvpClient) resetSession() error {
+	// reset session to the current host we are connected to
+	if err := c.initSession(c.HostPool.Value()); err != nil {
+		return errors.Wrap(err, "resetSession")
+	}
+
+	if err := c.login(); err != nil {
+		return errors.Wrap(err, "resetSession")
+	}
+	return nil
 }
 
 func (c *CvpClient) login() error {
@@ -280,28 +345,6 @@ func (c *CvpClient) login() error {
 	}
 	c.SessID = loginResp.SessionID
 
-	return nil
-}
-
-func (c *CvpClient) resetSession(host string) error {
-	c.Client = resty.New()
-	port := c.GetPort()
-
-	if host != "" {
-		c.url = fmt.Sprintf("%s://%s:%d/web", c.Protocol, host, port)
-	}
-
-	if c.Protocol == "https" {
-		c.Client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	}
-	c.Client.SetHostURL(c.url)
-	c.Client.SetHeaders(c.Headers)
-	c.Client.SetTimeout(c.Timeout)
-	c.Client.SetDebug(c.Debug)
-
-	if err := c.login(); err != nil {
-		return errors.Wrap(err, "resetSession")
-	}
 	return nil
 }
 
@@ -412,7 +455,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 					retryCnt--
 					if retryCnt > 0 {
 						// reset our session
-						if err := c.resetSession(""); err != nil {
+						if err := c.resetSession(); err != nil {
 							// try another session
 							err = errors.Wrap(err, "makeRequest")
 						}
