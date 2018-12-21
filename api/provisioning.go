@@ -737,7 +737,9 @@ func (c CvpRestAPI) containerOp(containerName, containerKey, parentName,
 			NodeName:    containerName,
 		},
 	}}
-	c.addTempAction(data)
+	if err := c.addTempAction(data); err != nil {
+		return nil, errors.Errorf("containerOp: %s", err)
+	}
 	return c.SaveTopology()
 }
 
@@ -745,14 +747,14 @@ func (c CvpRestAPI) containerOp(containerName, containerKey, parentName,
 func (c CvpRestAPI) AddContainer(containerName, parentName,
 	parentKey string) error {
 	_, err := c.containerOp(containerName, "New_container1", parentName, parentKey, "add")
-	return err
+	return errors.Wrap(err, "AddContainer")
 }
 
 // DeleteContainer deletes the container from the specified parent.
 func (c CvpRestAPI) DeleteContainer(containerName, containerKey,
 	parentName, parentKey string) error {
 	_, err := c.containerOp(containerName, containerKey, parentName, parentKey, "delete")
-	return err
+	return errors.Wrap(err, "DeleteContainer")
 }
 
 // SearchTopologyWithRange searches the topology for items matching the query parameter
@@ -1182,7 +1184,9 @@ func (c CvpRestAPI) RemoveImageFromContainer(imageInfo *ImageBundleInfo,
 			IgnoreNodeName: imageInfo.Name,
 		},
 	}}
-	c.addTempAction(data)
+	if err := c.addTempAction(data); err != nil {
+		return nil, errors.Errorf("RemoveImageFromContainer: %s", err)
+	}
 	return c.SaveTopology()
 }
 
