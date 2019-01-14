@@ -124,7 +124,7 @@ func (c CvpRestAPI) GetTaskByID(taskID int) (*CvpTask, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetTaskByID: %s", err)
+		return nil, errors.Errorf("GetTaskByID: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -150,7 +150,7 @@ func (c CvpRestAPI) GetTasks(queryStr string, start int, end int) ([]CvpTask, er
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetTasks: %s", err)
+		return nil, errors.Errorf("GetTasks: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -187,7 +187,7 @@ func (c CvpRestAPI) GetLogs(taskID int, start int, end int) ([]LogData, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetLogs: %s", err)
+		return nil, errors.Errorf("GetLogs: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -216,7 +216,7 @@ func (c CvpRestAPI) AddNoteToTask(taskID int, note string) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("AddNoteToTask: %s", err)
+		return errors.Errorf("AddNoteToTask: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -238,7 +238,7 @@ func (c CvpRestAPI) ExecuteTask(taskID int) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("ExecuteTask: %s", err)
+		return errors.Errorf("ExecuteTask: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -260,7 +260,7 @@ func (c CvpRestAPI) CancelTask(taskID int) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("CancelTask: %s", err)
+		return errors.Errorf("CancelTask: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {

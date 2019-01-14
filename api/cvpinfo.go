@@ -57,7 +57,7 @@ func (c CvpRestAPI) GetCvpInfo() (*CvpInfo, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetCvpInfo: %s", err)
+		return nil, errors.Errorf("GetCvpInfo: %s Payload:\n%s", err, resp)
 	}
 
 	return &info, nil

@@ -330,7 +330,7 @@ func (c CvpRestAPI) GetDeviceConfigletInfo(mac string) (*ConfigletInfo, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetDeviceConfigletInfo: %s", err)
+		return nil, errors.Errorf("GetDeviceConfigletInfo: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -363,7 +363,7 @@ func (c CvpRestAPI) addTempAction(data interface{}) error {
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return errors.Errorf("addTempAction: %s", err)
+		return errors.Errorf("addTempAction: %s Payload:\n%s", err, reqResp)
 	}
 
 	if err := resp.Error(); err != nil {
@@ -387,7 +387,7 @@ func (c CvpRestAPI) SaveTopology() (*TaskInfo, error) {
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, errors.Errorf("SaveTopology: %s", err)
+		return nil, errors.Errorf("SaveTopology: %s Payload:\n%s", err, reqResp)
 	}
 
 	return &resp.Data, nil
@@ -491,7 +491,7 @@ func (c CvpRestAPI) ValidateConfigletsForDevice(deviceMac string, configletKeys 
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, errors.Errorf("ValidateConfigletsForDevice: %s", err)
+		return nil, errors.Errorf("ValidateConfigletsForDevice: %s Payload:\n%s", err, reqResp)
 	}
 
 	if err := resp.Errors; err != nil {
@@ -776,7 +776,7 @@ func (c CvpRestAPI) SearchTopologyWithRange(querystr string, start int,
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, errors.Errorf("SearchTopologyWithRange: %s", err)
+		return nil, errors.Errorf("SearchTopologyWithRange: %s Payload:\n%s", err, reqResp)
 	}
 
 	if err := resp.Error(); err != nil {
@@ -808,7 +808,7 @@ func (c CvpRestAPI) CheckCompliance(nodeKey string, nodeType string) (*Complianc
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("CheckCompliance: %s", err)
+		return nil, errors.Errorf("CheckCompliance: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -961,7 +961,7 @@ func (c CvpRestAPI) GetImages(querystr string, start int, end int) ([]ImageInfo,
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, errors.Errorf("GetImages: %s", err)
+		return nil, errors.Errorf("GetImages: %s Payload:\n%s", err, reqResp)
 	}
 
 	if err := resp.Error(); err != nil {
@@ -1000,7 +1000,7 @@ func (c CvpRestAPI) GetImageBundles(querystr string, start, end int) ([]ImageBun
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, errors.Errorf("GetImageBundles: %s", err)
+		return nil, errors.Errorf("GetImageBundles: %s Payload:\n%s", err, reqResp)
 	}
 
 	if err := resp.Error(); err != nil {
@@ -1046,7 +1046,7 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, errors.Errorf("GetImageBundleByName: %s", err)
+		return nil, errors.Errorf("GetImageBundleByName: %s Payload:\n%s", err, reqResp)
 	}
 
 	if err := resp.Error(); err != nil {
@@ -1256,7 +1256,7 @@ func (c CvpRestAPI) GetTempConfigByNetElementID(netElementID string) (*TempConfi
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, errors.Errorf("GetTempConfigByNetElementID: %s", err)
+		return nil, errors.Errorf("GetTempConfigByNetElementID: %s Payload:\n%s", err, reqResp)
 	}
 
 	if err := resp.Error(); err != nil {
@@ -1285,7 +1285,7 @@ func (c CvpRestAPI) GetAllTempActions(start, end int) ([]Action, error) {
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, errors.Errorf("GetTempActions: %s", err)
+		return nil, errors.Errorf("GetTempActions: %s Payload:\n%s", err, reqResp)
 	}
 
 	if err := resp.Error(); err != nil {
@@ -1333,7 +1333,7 @@ func (c CvpRestAPI) FilterTopologyWithRange(nodeID, querystr, format string, sta
 	}
 
 	if err = json.Unmarshal(reqResp, &resp); err != nil {
-		return nil, errors.Errorf("FilterTopologyWithRange: %s", err)
+		return nil, errors.Errorf("FilterTopologyWithRange: %s Payload:\n%s", err, reqResp)
 	}
 
 	if err := resp.Error(); err != nil {

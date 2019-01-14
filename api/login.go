@@ -108,7 +108,7 @@ func (c *CvpRestAPI) Login(username, password string) (*LoginResp, error) {
 	}
 
 	if err = json.Unmarshal(rawResp, &resp); err != nil {
-		return nil, errors.Errorf("Login: %s", err)
+		return nil, errors.Errorf("Login: %s Payload:\n%s", err, rawResp)
 	}
 
 	if err := resp.Error(); err != nil {
@@ -128,7 +128,7 @@ func (c *CvpRestAPI) Logout() error {
 	}
 
 	if err = json.Unmarshal(rawResp, &resp); err != nil {
-		return errors.Errorf("Logout: %s", err)
+		return errors.Errorf("Logout: %s Payload:\n%s", err, rawResp)
 	}
 
 	if err := resp.Error(); err != nil {

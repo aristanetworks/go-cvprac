@@ -150,7 +150,7 @@ func (c CvpRestAPI) GetConfigletByName(name string) (*Configlet, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetConfigletByName: %s", err)
+		return nil, errors.Errorf("GetConfigletByName: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -183,7 +183,7 @@ func (c CvpRestAPI) GetConfigletHistory(key string, start int,
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetConfigletHistory: %s", err)
+		return nil, errors.Errorf("GetConfigletHistory: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -213,7 +213,7 @@ func (c CvpRestAPI) AddConfiglet(name string, config string) (*Configlet, error)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("AddConfiglet: %s", err)
+		return nil, errors.Errorf("AddConfiglet: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -239,7 +239,7 @@ func (c CvpRestAPI) DeleteConfiglet(name string, key string) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("DeleteConfiglet: %s", err)
+		return errors.Errorf("DeleteConfiglet: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -272,7 +272,7 @@ func (c CvpRestAPI) updateConfiglet(config string, name string, key string,
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "updateConfiglet: Body: %s", resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -320,7 +320,7 @@ func (c CvpRestAPI) AddConfigletNote(key string, note string) error {
 	}{}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("AddConfigletNote: %s", err)
+		return errors.Errorf("AddConfigletNote: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -344,7 +344,7 @@ func (c CvpRestAPI) VerifyConfig(netElement string, config string) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("VerifyConfig: %s", err)
+		return errors.Errorf("VerifyConfig: %s Payload:\n%s", err, resp)
 	}
 
 	if info.ErrorCount != 0 {
@@ -376,7 +376,7 @@ func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int,
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("SearchConfiglets: %s", err)
+		return nil, errors.Errorf("SearchConfiglets: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
