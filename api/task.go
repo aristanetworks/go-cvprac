@@ -249,10 +249,20 @@ func (c CvpRestAPI) ExecuteTask(taskID int) error {
 
 // CancelTask cancels the task given the taskID
 func (c CvpRestAPI) CancelTask(taskID int) error {
+	return c.CancelTasks([]int{taskID})
+}
+
+// CancelTasks cancels the list of taskIDs
+func (c CvpRestAPI) CancelTasks(taskID []int) error {
 	var info ErrorResponse
+	var taskIDs []string
+
+	for _, task := range taskID {
+		taskIDs = append(taskIDs, strconv.Itoa(task))
+	}
 
 	data := map[string][]string{
-		"data": []string{strconv.Itoa(taskID)},
+		"data": taskIDs,
 	}
 	resp, err := c.client.Post("/task/cancelTask.do", nil, data)
 	if err != nil {
