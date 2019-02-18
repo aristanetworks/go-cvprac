@@ -164,8 +164,8 @@ func (c CvpRestAPI) GetChangeControls(
 	}
 
 	if err = json.Unmarshal(resp, &changeControlInfo); err != nil {
-		return nil, errors.Errorf("GetChangeControls: %s",
-			err)
+		return nil, errors.Errorf("GetChangeControls: %s Payload:\n%s",
+			err, resp)
 
 	}
 
@@ -201,8 +201,8 @@ func (c CvpRestAPI) GetChangeControlAvailableTasks(
 	}
 
 	if err = json.Unmarshal(resp, &availableTaskInfo); err != nil {
-		return nil, errors.Errorf("GetChangeControlAvailableTasks: %s",
-			err)
+		return nil, errors.Errorf("GetChangeControlAvailableTasks: %s Payload:\n%s",
+			err, resp)
 
 	}
 
@@ -236,7 +236,7 @@ func (c CvpRestAPI) CreateChangeControl(ccName, timeZone, countryID, dateTime, s
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return "", errors.Errorf("CreateChangeControl: %s", err)
+		return "", errors.Errorf("CreateChangeControl: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -259,7 +259,7 @@ func (c CvpRestAPI) AddNotesToChangeControl(ccID int, notes string) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("AddNotesToChangeControl: %s", err)
+		return errors.Errorf("AddNotesToChangeControl: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
