@@ -114,22 +114,16 @@ type ConfigletUpdateReturn struct {
 
 // ConfigletVerifyResp represents
 type ConfigletVerifyResp struct {
-	ID      string `json:"id,omitempty"`
-	JSONRPC string `json:"jsonrpc,omitempty"`
+	ID      string `json:"id"`
+	JSONRPC string `json:"jsonrpc"`
 	Result  []struct {
 		Output   string   `json:"output"`
-		Messages []string `json:"messages,omitempty"`
+		Messages []string `json:"messages"`
 	} `json:"result"`
-	Warnings     []VerifyWarning `json:"warnings"`
-	WarningCount int             `json:"warningCount"`
-	Errors       []VerifyError   `json:"errors,omitempty"`
-	ErrorCount   int             `json:"errorCount,omitempty"`
-}
-
-// VerifyWarning represents a warning related to verification of a config
-type VerifyWarning struct {
-	LineNo  string `json:"lineNo"`
-	Warning string `json:"warning"`
+	Warnings     []string      `json:"warnings"`
+	WarningCount int           `json:"warningCount"`
+	Errors       []VerifyError `json:"errors"`
+	ErrorCount   int           `json:"errorCount"`
 }
 
 // VerifyError represents an error related to verification of a config
