@@ -66,7 +66,7 @@ func (c CvpRestAPI) GetAllUsers(start, end int) (*UserList, error) {
 		"endIndex":   {strconv.Itoa(end)},
 	}
 
-	resp, err := c.client.Get("/configlet/getUsers.do", query)
+	resp, err := c.client.Get("/user/getUsers.do", query)
 	if err != nil {
 		return nil, errors.Errorf("GetAllUsers: %s", err)
 	}
@@ -89,9 +89,9 @@ func (c CvpRestAPI) GetAllUsers(start, end int) (*UserList, error) {
 func (c CvpRestAPI) GetUser(userID string) (*SingleUser, error) {
 	var info SingleUser
 
-	query := &url.Values{"userID": {userID}}
+	query := &url.Values{"userId": {userID}}
 
-	resp, err := c.client.Get("/configlet/getUser.do", query)
+	resp, err := c.client.Get("/user/getUser.do", query)
 	if err != nil {
 		return nil, errors.Errorf("GetUser: %s", err)
 	}
