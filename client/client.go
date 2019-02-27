@@ -345,6 +345,8 @@ func (c *CvpClient) login() error {
 	}
 	c.SessID = loginResp.SessionID
 
+	c.Client.SetCookies(resp.Cookies())
+
 	return nil
 }
 
