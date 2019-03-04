@@ -478,9 +478,9 @@ func (c CvpRestAPI) ValidateConfigletsForDevice(deviceMac string, configletKeys 
 	*ValidateAndCompareConfigletsResp, error) {
 	var resp ValidateAndCompareConfigletsResp
 	data := struct {
-		NetElementID string   `json:"netElementId,omitempty"`
-		ConfigIDList []string `json:"configIdList,omitempty"`
-		PageType     string   `json:"pageType,omitempty"`
+		NetElementID string   `json:"netElementId"`
+		ConfigIDList []string `json:"configIdList"`
+		PageType     string   `json:"pageType"`
 	}{
 		NetElementID: deviceMac,
 		ConfigIDList: configletKeys,
