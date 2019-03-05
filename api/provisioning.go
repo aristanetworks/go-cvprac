@@ -229,10 +229,12 @@ type ReconciledConfig struct {
 
 // ConfigBlock ...
 type ConfigBlock struct {
-	Command string `json:"command"`
-	RowID   int    `json:"rowId"`
-	BlockID string `json:"blockId"`
-	Code    string `json:"code"`
+	Command         string `json:"command"`
+	RowID           int    `json:"rowId"`
+	ParentRowID     int    `json:"parentRowId"`
+	BlockID         string `json:"blockId"`
+	Code            string `json:"code"`
+	ShouldReconcile string `json:"shouldReconcile"`
 }
 
 // ValidateAndCompareConfigletsResp ...
@@ -256,6 +258,14 @@ func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+
+	// Check data for Errors as list of strings. Return if found.
+	var newErrors []string
+	if err = json.Unmarshal(*objMap["errors"], &newErrors); err == nil {
+		vcc.Errors = newErrors
+		return nil
+	}
+
 	// Check data for ReconciledConfig
 	// This check is necessary because the ReconciledConfig is returned as an object when
 	// there is data but as an empty string when there is none
@@ -294,19 +304,6 @@ func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
 	var newWarnings []string
 	json.Unmarshal(*objMap["warnings"], &newWarnings)
 	vcc.Warnings = newWarnings
-	// Check data for Errors as list of strings
-	var newErrors []string
-	err = json.Unmarshal(*objMap["errors"], &newErrors)
-	if err != nil {
-		// Check for Errors as string
-		var newErrorsString string
-		err = json.Unmarshal(*objMap["errors"], &newErrorsString)
-		// If Errors found as non empty string save it as list of strings
-		if err == nil && newErrorsString != "" {
-			newErrors = []string{newErrorsString}
-		}
-	}
-	vcc.Errors = newErrors
 	return nil
 }
 
