@@ -93,7 +93,7 @@ func Test_CvpGetAllUsersValid2_UnitTest(t *testing.T) {
     "cvpadmin": [
       "network-admin"
     ],
-    "shachi": []
+    "user1": []
   },
   "users": [
     {
@@ -110,10 +110,10 @@ func Test_CvpGetAllUsersValid2_UnitTest(t *testing.T) {
       "id": 28
     },
     {
-      "userId": "shachi",
+      "userId": "user1",
       "firstName": "",
       "lastName": "",
-      "email": "sagarwal@arista.com",
+      "email": "user1@arista.com",
       "lastAccessed": 0,
       "userStatus": "Enabled",
       "currentStatus": "",
