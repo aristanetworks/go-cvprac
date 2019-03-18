@@ -132,6 +132,35 @@ type VerifyError struct {
 	Error  string `json:"error"`
 }
 
+// GetConfigletsInfo returns configlet info
+func (c CvpRestAPI) GetConfigletsInfo(start int, end int) ([]Configlet, error) {
+	var info ConfigletList
+
+	query := &url.Values{
+		"startIndex": {strconv.Itoa(start)},
+		"endIndex":   {strconv.Itoa(end)},
+	}
+
+	resp, err := c.client.Get("/configlet/getConfiglets.do", query)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetConfigletsInfo")
+	}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return nil, errors.Errorf("GetConfigletsInfo: %s Payload:\n%s", err, resp)
+	}
+
+	if err := info.Error(); err != nil {
+		return nil, errors.Wrap(err, "GetConfigletsInfo")
+	}
+	return info.Data, nil
+}
+
+// GetConfiglets returns configlet info
+func (c CvpRestAPI) GetConfiglets() ([]Configlet, error) {
+	return c.GetConfigletsInfo(0, 0)
+}
+
 // GetConfigletByName returns the configlet with the specified name
 func (c CvpRestAPI) GetConfigletByName(name string) (*Configlet, error) {
 	var info Configlet
@@ -334,7 +363,7 @@ func (c CvpRestAPI) VerifyConfig(netElement string, config string) error {
 
 	resp, err := c.client.Post("/configlet/validateConfig.do", nil, data)
 	if err != nil {
-		return errors.Errorf("VerifyConfig: %s", err)
+		return errors.Wrap(err, "VerifyConfig")
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
