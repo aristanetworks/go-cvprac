@@ -223,6 +223,7 @@ type ReconciledConfig struct {
 	Editable             bool    `json:"editable"`
 	SSLConfig            bool    `json:"sslConfig"`
 	Visible              bool    `json:"visible"`
+	IsDraft              bool    `json:"isDraft"`
 	FactoryID            int     `json:"factoryId"`
 	ID                   int     `json:"id"`
 }
@@ -253,6 +254,16 @@ type ValidateAndCompareConfigletsResp struct {
 
 // UnmarshalJSON ...
 func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
+	// Check if response is an ErrorResponse
+	// This check is necessary because certain invalid calls to CVP will
+	// return an ErrorResponse. If a good response is returned this
+	// Unmarshal will fail and then be ignored.
+	var errorResp ErrorResponse
+	json.Unmarshal(data, &errorResp)
+	if errorResp.ErrorMessage != "" {
+		return errors.Errorf("ValidateAndCompareConfigletsResp UnmarshalJSON Error %s - %s",
+			errorResp.ErrorCode, errorResp.ErrorMessage)
+	}
 	var objMap map[string]*json.RawMessage
 	err := json.Unmarshal(data, &objMap)
 	if err != nil {
@@ -261,10 +272,16 @@ func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
 
 	// Check data for Errors as list of strings. Return if found.
 	var newErrors []string
-	if err = json.Unmarshal(*objMap["errors"], &newErrors); err == nil {
-		vcc.Errors = newErrors
-		return nil
+	if err = json.Unmarshal(*objMap["errors"], &newErrors); err != nil {
+		// Check for Errors as string
+		var newErrorsString string
+		err = json.Unmarshal(*objMap["errors"], &newErrorsString)
+		// If Errors found as non empty string save it as list of strings
+		if err == nil && newErrorsString != "" {
+			newErrors = []string{newErrorsString}
+		}
 	}
+	vcc.Errors = newErrors
 
 	// Check data for ReconciledConfig
 	// This check is necessary because the ReconciledConfig is returned as an object when
@@ -514,7 +531,7 @@ func (c CvpRestAPI) ValidateAndApplyConfigletsToDevice(appName string, dev *NetE
 	}
 
 	// Run Validation of new configlets to be applied
-	validateResp, err := c.ValidateConfigletsForDevice(dev.Key, ckeys)
+	validateResp, err := c.ValidateConfigletsForDevice(dev.SystemMacAddress, ckeys)
 	if err != nil {
 		return nil, errors.Errorf("ApplyConfigletsToDevice: %s", err)
 	}
@@ -1351,10 +1368,18 @@ func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 	var configletKeys []string
 	var builderNames []string
 	var builderKeys []string
+	var reconcileConfiglet *Configlet
 
 	configletMap := make(map[string]string)
 
 	for _, configlet := range applied {
+		// Reconcile configlet must be last in the list
+		// Store it separatly to be appended at very end of current and new configlets
+		if configlet.Reconciled {
+			reconcileConfiglet = &configlet
+			continue
+		}
+
 		switch configlet.Type {
 		case "Static":
 			fallthrough
@@ -1379,6 +1404,12 @@ func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 		if _, found := configletMap[configlet.Key]; found {
 			continue
 		}
+		// Reconcile configlet must be last in the list
+		// Store it separatly to be appended at very end of current and new configlets
+		if configlet.Reconciled {
+			reconcileConfiglet = &configlet
+			continue
+		}
 
 		// didn't find this configlet in either maps, so it's new
 		actionReqd = true
@@ -1400,6 +1431,12 @@ func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 		}
 	}
 
+	// Tack reconcile configlet onto end of appropriate lists if found
+	if reconcileConfiglet != nil {
+		configletNames = append(configletNames, reconcileConfiglet.Name)
+		configletKeys = append(configletKeys, reconcileConfiglet.Key)
+	}
+
 	return actionReqd, configletNames, configletKeys, builderNames, builderKeys, nil
 }
 
@@ -1407,7 +1444,6 @@ func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 // specific configlets
 func checkRemoveConfigMapping(applied []Configlet, rmConfiglets []Configlet) (bool,
 	[]string, []string, []string, []string, error) {
-
 	var configletNames []string
 	var builderNames []string
 	var rmConfigletNames []string
@@ -1479,14 +1515,15 @@ func (c CvpRestAPI) getConfigletKeys(configletNames []string) ([]string, error) 
 	}
 
 	// create our list of keys
-	for _, configletName := range configletNames {
-		var name string
+	for index, configletName := range configletNames {
+		var configletKey string
 		var found bool
 
-		if name, found = configletMap[configletName]; !found {
-			return nil, errors.Errorf("getConfigletKeys: Invalid configlet name [%s]", name)
+		if configletKey, found = configletMap[configletName]; !found {
+			return nil, errors.Errorf("getConfigletKeys: Invalid configlet name [%s]",
+				configletName)
 		}
-		configletKeys = append(configletKeys, name)
+		configletKeys[index] = configletKey
 	}
 	return configletKeys, nil
 }
