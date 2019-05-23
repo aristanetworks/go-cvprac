@@ -1506,7 +1506,7 @@ func (c CvpRestAPI) getConfigletKeys(configletNames []string) ([]string, error) 
 		return nil, errors.Wrap(err, "getConfigletKeys")
 	}
 
-	configletMap := make(map[string]string, len(configletNames))
+	configletMap := make(map[string]string, len(configletInfo))
 	configletKeys := make([]string, len(configletNames))
 
 	// create our mapping for name to key
