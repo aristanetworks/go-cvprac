@@ -51,6 +51,7 @@ type NetElement struct {
 	Architecture         string       `json:"architecture"`
 	InternalBuildID      string       `json:"internalBuildId"`
 	HardwareRevision     string       `json:"hardwareRevision"`
+	Hostname             string       `json:"hostname"`
 	Fqdn                 string       `json:"fqdn"`
 	TaskIDList           []CvpTask    `json:"taskIdList"`
 	ZtpMode              interface{}  `json:"ztpMode"`
