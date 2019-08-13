@@ -677,54 +677,204 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 	return nil, nil
 }
 
-// ResetDevice Resets/Reboots the device to factory setting.
-func (c CvpRestAPI) ResetDevice(appName string, dev *NetElement,
-	container *Container, commit bool) (*TaskInfo, error) {
-	if dev == nil {
-		return nil, errors.Errorf("ResetDevice: nil NetElement ref provided")
-	}
-	if container == nil {
-		return nil, errors.Errorf("ResetDevice: nil Container ref provided")
-	}
-
-	info := appName + ": Reset: Device Reset: %s - To be Reset" + dev.Fqdn
-	infoPreview := "<b>Device Reset:</b> %s - To be Reset" + dev.Fqdn
-
-	data := struct {
-		Data []Action `json:"data,omitempty"`
-	}{Data: []Action{
-		Action{
-			ID:          1,
-			Action:      "reset",
-			FromID:      dev.ParentContainerKey,
-			FromName:    container.Name,
-			Info:        info,
-			InfoPreview: infoPreview,
-			NodeID:      dev.SystemMacAddress,
-			NodeName:    dev.Fqdn,
-			NodeType:    "netelement",
-			ToID:        "undefined_container",
-			ToIDType:    "container",
-			ParentTask:  "",
-		},
-	}}
-
-	if err := c.addTempAction(data); err != nil {
-		return nil, errors.Errorf("ResetDevice: %s", err)
-	}
-
-	if commit {
-		return c.SaveTopology()
-	}
-	return nil, nil
-}
-
 // RemoveConfigletFromDevice Remove the configlets from the device.
 func (c CvpRestAPI) RemoveConfigletFromDevice(appName string, dev *NetElement,
 	remConfiglet *Configlet, commit bool) (*TaskInfo, error) {
 	var remConfigletList []Configlet
 	remConfigletList = append(remConfigletList, *remConfiglet)
 	return c.RemoveConfigletsFromDevice(appName, dev, commit, remConfigletList...)
+}
+
+// ApplyConfigletsToContainer apply the configlets to the container.
+func (c CvpRestAPI) ApplyConfigletsToContainer(appName string, cont *Container,
+	newConfiglets ...Configlet) (*TaskInfo, error) {
+	if cont == nil {
+		return nil, errors.Errorf("ApplyConfigletsToContainer: nil Container")
+	}
+
+	configlets, err := c.GetContainerConfiglets(cont.Key)
+	if err != nil {
+		return nil, errors.Errorf("ApplyConfigletsToContainer: %s", err)
+	}
+
+	action, cnames, ckeys, cbnames, cbkeys, err := checkConfigMapping(configlets, newConfiglets)
+	if err != nil {
+		return nil, errors.Wrap(err, "ApplyConfigletsToContainer")
+	}
+
+	if !action {
+		return nil, nil
+	}
+
+	info := appName + ": Configlet Assign: to Container " + cont.Name
+	infoPreview := "<b>Configlet Assign:</b> to Container " + cont.Name
+
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
+		Action{
+			Info:                            info,
+			InfoPreview:                     infoPreview,
+			Note:                            "",
+			Action:                          "associate",
+			NodeType:                        "configlet",
+			NodeID:                          "",
+			ConfigletBuilderList:            cbkeys,
+			ConfigletBuilderNamesList:       cbnames,
+			ConfigletList:                   ckeys,
+			ConfigletNamesList:              cnames,
+			IgnoreConfigletBuilderNamesList: []string{},
+			IgnoreConfigletBuilderList:      []string{},
+			IgnoreConfigletNamesList:        []string{},
+			IgnoreConfigletList:             []string{},
+			ToID:                            cont.Key,
+			ToIDType:                        "container",
+			FromID:                          "",
+			FromName:                        "",
+			//NodeIPAddress:                   dev.IPAddress,
+			//NodeTargetIPAddress:             dev.IPAddress,
+			NodeName:   "",
+			ToName:     cont.Name,
+			ChildTasks: []string{},
+			ParentTask: "",
+		},
+	}}
+
+	if err := c.addTempAction(data); err != nil {
+		return nil, errors.Errorf("ApplyConfigletsToContainer: %s", err)
+	}
+	return c.SaveTopology()
+}
+
+// ApplyConfigletToContainer apply the configlets to the container.
+func (c CvpRestAPI) ApplyConfigletToContainer(appName string, cont *Container,
+	newConfiglet *Configlet) (*TaskInfo, error) {
+	var newConfigletList []Configlet
+	newConfigletList = append(newConfigletList, *newConfiglet)
+	return c.ApplyConfigletsToContainer(appName, cont, newConfigletList...)
+}
+
+// RemoveConfigletsFromContainer Remove the configlets from the container.
+func (c CvpRestAPI) RemoveConfigletsFromContainer(appName string, cont *Container,
+	remConfiglets ...Configlet) (*TaskInfo, error) {
+	if cont == nil {
+		return nil, errors.Errorf("RemoveConfigletsFromContainer: nil Container")
+	}
+
+	configlets, err := c.GetContainerConfiglets(cont.Key)
+	if err != nil {
+		return nil, errors.Errorf("RemoveConfigletsFromContainer: %s", err)
+	}
+
+	action, cNames, cbNames, rmNames, rmbNames, err :=
+		checkRemoveConfigMapping(configlets, remConfiglets)
+	if err != nil {
+		return nil, errors.Wrap(err, "RemoveConfigletsFromContainer")
+	}
+
+	if !action {
+		return nil, nil
+	}
+
+	var cKeys, cbKeys, rmKeys, rmbKeys []string
+	// Build a list of the configlet names/keys to remove.
+	if cKeys, err = c.getConfigletKeys(cNames); err != nil {
+		return nil, errors.Wrap(err, "RemoveConfigletsFromContainer")
+	}
+
+	// Build a list of the configlet names/keys to remove.
+	if cbKeys, err = c.getConfigletKeys(cbNames); err != nil {
+		return nil, errors.Wrap(err, "RemoveConfigletsFromContainer")
+	}
+
+	// Build a list of the configlet names/keys to remove.
+	if rmKeys, err = c.getConfigletKeys(rmNames); err != nil {
+		return nil, errors.Wrap(err, "RemoveConfigletsFromContainer")
+	}
+
+	// Build a list of the configlet names/keys to remove.
+	if rmbKeys, err = c.getConfigletKeys(rmbNames); err != nil {
+		return nil, errors.Wrap(err, "RemoveConfigletsFromContainer")
+	}
+
+	info := appName + ": Configlet Remove: from Container " + cont.Name
+	infoPreview := "<b>Configlet Remove:</b> from Container" + cont.Name
+
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
+		Action{
+			ID:                              1,
+			Info:                            info,
+			InfoPreview:                     infoPreview,
+			Note:                            "",
+			Action:                          "associate",
+			NodeType:                        "configlet",
+			NodeID:                          "",
+			ConfigletList:                   cKeys,
+			ConfigletNamesList:              cNames,
+			ConfigletBuilderList:            cbKeys,
+			ConfigletBuilderNamesList:       cbNames,
+			IgnoreConfigletList:             rmKeys,
+			IgnoreConfigletNamesList:        rmNames,
+			IgnoreConfigletBuilderList:      rmbKeys,
+			IgnoreConfigletBuilderNamesList: rmbNames,
+			ToID:                            cont.Key,
+			ToIDType:                        "container",
+			FromID:                          "",
+			NodeName:                        "",
+			//NodeIPAddress:                   dev.IPAddress,
+			//NodeTargetIPAddress:             dev.IPAddress,
+			FromName:   "",
+			ToName:     cont.Name,
+			ChildTasks: []string{},
+			ParentTask: "",
+		},
+	}}
+	if err := c.addTempAction(data); err != nil {
+		return nil, errors.Errorf("RemoveConfigletsFromContainer: %s", err)
+	}
+	return c.SaveTopology()
+}
+
+// RemoveConfigletFromContainer Remove the configlets from the device.
+func (c CvpRestAPI) RemoveConfigletFromContainer(appName string, cont *Container,
+	remConfiglet *Configlet) (*TaskInfo, error) {
+	var remConfigletList []Configlet
+	remConfigletList = append(remConfigletList, *remConfiglet)
+	return c.RemoveConfigletsFromContainer(appName, cont, remConfigletList...)
+}
+
+// GetContainerConfiglets returns a list of configlets for a given container key
+func (c CvpRestAPI) GetContainerConfiglets(cid string) ([]Configlet, error) {
+	result, err := c.GetContainerConfigletsWithRange(cid, 0, 0)
+	return result, errors.Wrap(err, "GetContainerConfiglets")
+}
+
+// GetContainerConfigletsWithRange returns a list of configlets for a given
+// container key and start/end range
+func (c CvpRestAPI) GetContainerConfigletsWithRange(cid string, start int,
+	end int) ([]Configlet, error) {
+	var resp ConfigletInfo
+	query := &url.Values{
+		"containerId": {cid},
+		"startIndex":  {strconv.Itoa(start)},
+		"endIndex":    {strconv.Itoa(end)},
+	}
+
+	reqResp, err := c.client.Get("/provisioning/getConfigletsByContainerId.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetContainerConfigletsWithRange: %s", err)
+	}
+
+	if err = json.Unmarshal(reqResp, &resp); err != nil {
+		return nil, errors.Errorf("GetContainerConfigletsWithRange: %s Payload:\n%s", err, reqResp)
+	}
+
+	if err := resp.Error(); err != nil {
+		return nil, errors.Errorf("GetContainerConfigletsWithRange: %s", err)
+	}
+	return resp.ConfigletList, nil
 }
 
 func (c CvpRestAPI) containerOp(containerName, containerKey, parentName,
@@ -767,6 +917,48 @@ func (c CvpRestAPI) DeleteContainer(containerName, containerKey,
 	parentName, parentKey string) error {
 	_, err := c.containerOp(containerName, containerKey, parentName, parentKey, "delete")
 	return errors.Wrap(err, "DeleteContainer")
+}
+
+// ResetDevice Resets/Reboots the device to factory setting.
+func (c CvpRestAPI) ResetDevice(appName string, dev *NetElement,
+	container *Container, commit bool) (*TaskInfo, error) {
+	if dev == nil {
+		return nil, errors.Errorf("ResetDevice: nil NetElement ref provided")
+	}
+	if container == nil {
+		return nil, errors.Errorf("ResetDevice: nil Container ref provided")
+	}
+
+	info := appName + ": Reset: Device Reset: %s - To be Reset" + dev.Fqdn
+	infoPreview := "<b>Device Reset:</b> %s - To be Reset" + dev.Fqdn
+
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
+		Action{
+			ID:          1,
+			Action:      "reset",
+			FromID:      dev.ParentContainerKey,
+			FromName:    container.Name,
+			Info:        info,
+			InfoPreview: infoPreview,
+			NodeID:      dev.SystemMacAddress,
+			NodeName:    dev.Fqdn,
+			NodeType:    "netelement",
+			ToID:        "undefined_container",
+			ToIDType:    "container",
+			ParentTask:  "",
+		},
+	}}
+
+	if err := c.addTempAction(data); err != nil {
+		return nil, errors.Errorf("ResetDevice: %s", err)
+	}
+
+	if commit {
+		return c.SaveTopology()
+	}
+	return nil, nil
 }
 
 // SearchTopologyWithRange searches the topology for items matching the query parameter
