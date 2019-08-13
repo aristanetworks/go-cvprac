@@ -81,7 +81,7 @@ func (c CvpRestAPI) GetLabels(module, labelType, searchStr string,
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetLabels: %s", err)
+		return nil, errors.Errorf("GetLabels: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -116,7 +116,7 @@ func (c CvpRestAPI) GetLabelInfo(labelID string) (*Label, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetLabelInfo: %s", err)
+		return nil, errors.Errorf("GetLabelInfo: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -145,7 +145,7 @@ func (c CvpRestAPI) AddLabel(name string, note string, labeltype string) (*Label
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("AddLabel: %s", err)
+		return nil, errors.Errorf("AddLabel: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -170,7 +170,7 @@ func (c CvpRestAPI) DeleteLabelsByKey(keys []string) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("DeleteLabel: %s", err)
+		return errors.Errorf("DeleteLabel: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -212,7 +212,7 @@ func (c CvpRestAPI) UpdateLabel(name, key, note, labelType string) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("UpdateLabel: %s", err)
+		return errors.Errorf("UpdateLabel: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -236,7 +236,7 @@ func (c CvpRestAPI) UpdateLabelNote(key, note string) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("UpdateLabelNote: %s", err)
+		return errors.Errorf("UpdateLabelNote: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {

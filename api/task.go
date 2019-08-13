@@ -124,7 +124,7 @@ func (c CvpRestAPI) GetTaskByID(taskID int) (*CvpTask, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetTaskByID: %s", err)
+		return nil, errors.Errorf("GetTaskByID: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -150,7 +150,7 @@ func (c CvpRestAPI) GetTasks(queryStr string, start int, end int) ([]CvpTask, er
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetTasks: %s", err)
+		return nil, errors.Errorf("GetTasks: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -187,7 +187,7 @@ func (c CvpRestAPI) GetLogs(taskID int, start int, end int) ([]LogData, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetLogs: %s", err)
+		return nil, errors.Errorf("GetLogs: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -216,7 +216,7 @@ func (c CvpRestAPI) AddNoteToTask(taskID int, note string) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("AddNoteToTask: %s", err)
+		return errors.Errorf("AddNoteToTask: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -227,10 +227,20 @@ func (c CvpRestAPI) AddNoteToTask(taskID int, note string) error {
 
 // ExecuteTask executes a task given the taskID.
 func (c CvpRestAPI) ExecuteTask(taskID int) error {
+	return c.ExecuteTasks([]int{taskID})
+}
+
+// ExecuteTasks executes a task given the taskID.
+func (c CvpRestAPI) ExecuteTasks(taskID []int) error {
 	var info ErrorResponse
+	var taskIDs []string
+
+	for _, task := range taskID {
+		taskIDs = append(taskIDs, strconv.Itoa(task))
+	}
 
 	data := map[string][]string{
-		"data": []string{strconv.Itoa(taskID)},
+		"data": taskIDs,
 	}
 	resp, err := c.client.Post("/task/executeTask.do", nil, data)
 	if err != nil {
@@ -238,7 +248,7 @@ func (c CvpRestAPI) ExecuteTask(taskID int) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("ExecuteTask: %s", err)
+		return errors.Errorf("ExecuteTask: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -249,10 +259,20 @@ func (c CvpRestAPI) ExecuteTask(taskID int) error {
 
 // CancelTask cancels the task given the taskID
 func (c CvpRestAPI) CancelTask(taskID int) error {
+	return c.CancelTasks([]int{taskID})
+}
+
+// CancelTasks cancels the list of taskIDs
+func (c CvpRestAPI) CancelTasks(taskID []int) error {
 	var info ErrorResponse
+	var taskIDs []string
+
+	for _, task := range taskID {
+		taskIDs = append(taskIDs, strconv.Itoa(task))
+	}
 
 	data := map[string][]string{
-		"data": []string{strconv.Itoa(taskID)},
+		"data": taskIDs,
 	}
 	resp, err := c.client.Post("/task/cancelTask.do", nil, data)
 	if err != nil {
@@ -260,7 +280,7 @@ func (c CvpRestAPI) CancelTask(taskID int) error {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return errors.Errorf("CancelTask: %s", err)
+		return errors.Errorf("CancelTask: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {

@@ -33,32 +33,79 @@ package cvpapi
 
 import (
 	"encoding/json"
+	"net/url"
+	"strconv"
 
 	"github.com/pkg/errors"
 )
 
-// CvpInfo represents Cvp specific information
-type CvpInfo struct {
-	AppVersion string `json:"appVersion"`
-	Version    string `json:"version"`
+// UserList represents a list of users and the roles
+type UserList struct {
+	Total int                 `json:"total"`
+	Users []User              `json:"users"`
+	Roles map[string][]string `json:"roles"`
+
+	ErrorResponse
 }
 
-func (i CvpInfo) String() string {
-	return "version:" + i.Version + ", appVersion:" + i.AppVersion
+// SingleUser represents one user and roles associated with that user
+type SingleUser struct {
+	UserData User     `json:"user"`
+	Roles    []string `json:"roles"`
+
+	ErrorResponse
 }
 
-// GetCvpInfo returns the CvpInfo from the Client connection.
-func (c CvpRestAPI) GetCvpInfo() (*CvpInfo, error) {
-	var info CvpInfo
+// GetAllUsers returns all the existing users in CVP
+func (c CvpRestAPI) GetAllUsers(start, end int) (*UserList, error) {
+	var users UserList
 
-	resp, err := c.client.Get("/cvpInfo/getCvpInfo.do", nil)
+	query := &url.Values{
+		"queryparam": {""},
+		"startIndex": {strconv.Itoa(start)},
+		"endIndex":   {strconv.Itoa(end)},
+	}
+
+	resp, err := c.client.Get("/user/getUsers.do", query)
 	if err != nil {
-		return nil, errors.Errorf("GetCvpInfo: %s", err)
+		return nil, errors.Errorf("GetAllUsers: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &users); err != nil {
+		return nil, errors.Errorf("GetAllUsers: %s Payload:\n%s", err, resp)
+	}
+
+	if err := users.Error(); err != nil {
+		// Entity does not exist
+		if users.ErrorCode == "132801" {
+			return nil, nil
+		}
+		return nil, errors.Errorf("GetAllUsers: %s", err)
+	}
+	return &users, nil
+}
+
+// GetUser returns the user with ID 'userID' and the roles associated with user
+func (c CvpRestAPI) GetUser(userID string) (*SingleUser, error) {
+	var info SingleUser
+
+	query := &url.Values{"userId": {userID}}
+
+	resp, err := c.client.Get("/user/getUser.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetUser: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetCvpInfo: %s Payload:\n%s", err, resp)
+		return nil, errors.Errorf("GetUser: %s Payload:\n%s", err, resp)
 	}
 
+	if err := info.Error(); err != nil {
+		// Entity does not exist
+		if info.ErrorCode == "132801" {
+			return nil, nil
+		}
+		return nil, errors.Errorf("GetUser: %s", err)
+	}
 	return &info, nil
 }

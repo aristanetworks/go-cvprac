@@ -51,6 +51,7 @@ type NetElement struct {
 	Architecture         string       `json:"architecture"`
 	InternalBuildID      string       `json:"internalBuildId"`
 	HardwareRevision     string       `json:"hardwareRevision"`
+	Hostname             string       `json:"hostname"`
 	Fqdn                 string       `json:"fqdn"`
 	TaskIDList           []CvpTask    `json:"taskIdList"`
 	ZtpMode              interface{}  `json:"ztpMode"`
@@ -176,7 +177,7 @@ func (c CvpRestAPI) GetInventory() ([]NetElement, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetInventory: %s", err)
+		return nil, errors.Errorf("GetInventory: %s Payload:\n%s", err, resp)
 
 	}
 	return info, nil
@@ -202,7 +203,7 @@ func (c CvpRestAPI) GetInventoryConfiguration(
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetInventoryConfiguration: %s", err)
+		return nil, errors.Errorf("GetInventoryConfiguration: %s Payload:\n%s", err, resp)
 
 	}
 
@@ -339,7 +340,7 @@ func (c CvpRestAPI) GetContainer(name string) ([]Container, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetContainer: %s", err)
+		return nil, errors.Errorf("GetContainer: %s Payload:\n%s", err, resp)
 	}
 
 	return info, nil
@@ -395,7 +396,7 @@ func (c CvpRestAPI) GetContainerInfoByID(id string) (*ContainerInfo, error) {
 	}
 
 	if err = json.Unmarshal(resp, &infoResp); err != nil {
-		return nil, errors.Errorf("GetContainerInfoByID: %s", err)
+		return nil, errors.Errorf("GetContainerInfoByID: %s Payload:\n%s", err, resp)
 	}
 
 	if err := infoResp.Error(); err != nil {
@@ -417,7 +418,7 @@ func (c CvpRestAPI) GetNonConnectedDeviceCount() (int, error) {
 	}{}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return -1, errors.Errorf("GetNonConnectedDeviceCount: %s", err)
+		return -1, errors.Errorf("GetNonConnectedDeviceCount: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -437,7 +438,7 @@ func (c CvpRestAPI) SaveInventory() (*SaveInventoryData, error) {
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetNonConnectedDeviceCount: %s", err)
+		return nil, errors.Errorf("GetNonConnectedDeviceCount: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {

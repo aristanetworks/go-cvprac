@@ -259,10 +259,7 @@ func (c *CvpClient) GetSessionID() string {
 func (c *CvpClient) Connect(username string, password string) error {
 	c.authInfo = &authInfo{username, password}
 
-	if err := c.createSession(true); err != nil {
-		return err
-	}
-	return nil
+	return c.createSession(true)
 }
 
 func (c *CvpClient) createSession(allNodes bool) error {
@@ -344,6 +341,8 @@ func (c *CvpClient) login() error {
 		return errors.Wrap(err, "login")
 	}
 	c.SessID = loginResp.SessionID
+
+	c.Client.SetCookies(resp.Cookies())
 
 	return nil
 }
