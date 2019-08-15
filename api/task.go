@@ -144,7 +144,7 @@ func (c CvpRestAPI) GetTasks(queryStr string, start int, end int) ([]CvpTask, er
 		"endIndex":   {strconv.Itoa(end)},
 	}
 
-	resp, err := c.client.Get("/task/getTasks.do", query)
+	resp, err := c.client.Get("/workflow/getTasks.do", query)
 	if err != nil {
 		return nil, errors.Errorf("GetTasks: %s", err)
 	}
@@ -242,7 +242,7 @@ func (c CvpRestAPI) ExecuteTasks(taskID []int) error {
 	data := map[string][]string{
 		"data": taskIDs,
 	}
-	resp, err := c.client.Post("/task/executeTask.do", nil, data)
+	resp, err := c.client.Post("/workflow/executeTask.do", nil, data)
 	if err != nil {
 		return errors.Errorf("ExecuteTask: %s", err)
 	}
