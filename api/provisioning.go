@@ -1037,8 +1037,8 @@ func (c CvpRestAPI) GetParentContainerForDevice(deviceMAC string) (*Container, e
 }
 
 // MoveDeviceToContainer moves a specified netelement to a container.
-func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Container,
-	commit bool) (*TaskInfo, error) {
+func (c CvpRestAPI) MoveDeviceToContainer(appName string, device *NetElement,
+	container *Container, commit bool) (*TaskInfo, error) {
 	if device == nil {
 		return nil, errors.Errorf("MoveDeviceToContainer: nil NetElement")
 	}
@@ -1047,8 +1047,18 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 	}
 
 	var fromID string
+	var fromName string
 	if device.ParentContainerKey != "" {
+		container, err := c.GetContainerInfoByID(device.ParentContainerKey)
+		if err != nil {
+			return nil, errors.Errorf("MoveDeviceToContainer: %s", err)
+		}
+		if container == nil {
+			return nil, errors.Errorf("MoveDeviceToContainer: No container found for "+
+				"device [%s] containerID [%s]", device.Fqdn, fromID)
+		}
 		fromID = device.ParentContainerKey
+		fromName = container.Name
 	} else {
 		parentCont, err := c.GetParentContainerForDevice(device.SystemMacAddress)
 		if err != nil {
@@ -1059,9 +1069,10 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 				"device [%s]", device.SystemMacAddress)
 		}
 		fromID = parentCont.Key
+		fromName = parentCont.Name
 	}
 
-	msg := "Moving device " + device.Fqdn + " from container " + fromID +
+	msg := appName + ": Moving device " + device.Fqdn + " from container " + fromID +
 		" to container " + container.Name
 
 	data := struct {
@@ -1077,6 +1088,7 @@ func (c CvpRestAPI) MoveDeviceToContainer(device *NetElement, container *Contain
 			ToName:      container.Name,
 			ToIDType:    "container",
 			FromID:      fromID,
+			FromName:    fromName,
 			NodeName:    device.Fqdn,
 		},
 	}}
@@ -1276,8 +1288,8 @@ func (c CvpRestAPI) GetImageBundleByName(name string) (*ImageBundleInfo, error) 
 }
 
 // ApplyImageToDevice Applies image bundle to device
-func (c CvpRestAPI) ApplyImageToDevice(imageInfo *ImageBundleInfo, netElement *NetElement,
-	commit bool) (*TaskInfo, error) {
+func (c CvpRestAPI) ApplyImageToDevice(appName string, imageInfo *ImageBundleInfo,
+	netElement *NetElement, commit bool) (*TaskInfo, error) {
 	if imageInfo == nil {
 		return nil, errors.Errorf("ApplyImageToDevice: nil ImageBundleInfo")
 	}
@@ -1285,7 +1297,7 @@ func (c CvpRestAPI) ApplyImageToDevice(imageInfo *ImageBundleInfo, netElement *N
 		return nil, errors.Errorf("ApplyImageToDevice: nil NetElement")
 	}
 
-	msg := "Apply image " + imageInfo.Name + " to NetElement " + netElement.Fqdn
+	msg := appName + ": Apply image " + imageInfo.Name + " to NetElement " + netElement.Fqdn
 
 	data := struct {
 		Data []Action `json:"data,omitempty"`
@@ -1316,8 +1328,8 @@ func (c CvpRestAPI) ApplyImageToDevice(imageInfo *ImageBundleInfo, netElement *N
 }
 
 // ApplyImageToContainer Applies image bundle to container
-func (c CvpRestAPI) ApplyImageToContainer(imageInfo *ImageBundleInfo, container *Container,
-	commit bool) (*TaskInfo, error) {
+func (c CvpRestAPI) ApplyImageToContainer(appName string, imageInfo *ImageBundleInfo,
+	container *Container, commit bool) (*TaskInfo, error) {
 	if imageInfo == nil {
 		return nil, errors.Errorf("ApplyImageToContainer: nil ImageBundleInfo")
 	}
@@ -1325,7 +1337,7 @@ func (c CvpRestAPI) ApplyImageToContainer(imageInfo *ImageBundleInfo, container 
 		return nil, errors.Errorf("ApplyImageToContainer: nil Container")
 	}
 
-	msg := "Apply image " + imageInfo.Name + " to Container " + container.Name
+	msg := appName + ": Apply image " + imageInfo.Name + " to Container " + container.Name
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
@@ -1356,7 +1368,7 @@ func (c CvpRestAPI) ApplyImageToContainer(imageInfo *ImageBundleInfo, container 
 }
 
 // RemoveImageFromContainer removes image bundle from container
-func (c CvpRestAPI) RemoveImageFromContainer(imageInfo *ImageBundleInfo,
+func (c CvpRestAPI) RemoveImageFromContainer(appName string, imageInfo *ImageBundleInfo,
 	container *Container) (*TaskInfo, error) {
 	if imageInfo == nil {
 		return nil, errors.Errorf("RemoveImageFromContainer: nil ImageBundleInfo")
@@ -1365,7 +1377,7 @@ func (c CvpRestAPI) RemoveImageFromContainer(imageInfo *ImageBundleInfo,
 		return nil, errors.Errorf("RemoveImageFromContainer: nil Container")
 	}
 
-	msg := "Remove image " + imageInfo.Name + " from Container " + container.Name
+	msg := appName + ": Remove image " + imageInfo.Name + " from Container " + container.Name
 
 	data := struct {
 		Data []Action `json:"data,omitempty"`
@@ -1396,27 +1408,71 @@ func (c CvpRestAPI) RemoveImageFromContainer(imageInfo *ImageBundleInfo,
 
 // DeployDevice Move a device from the undefined container to a target container.
 // Optionally, apply device-specific configlets to the device.
-func (c CvpRestAPI) DeployDevice(netElement *NetElement, container *Container,
-	configlets ...Configlet) (*TaskInfo, error) {
-	return c.DeployDeviceWithImage(netElement, container, "", configlets...)
+func (c CvpRestAPI) DeployDevice(appName string, dev *NetElement, devTargetIP string,
+	container *Container, configlets ...Configlet) (*TaskInfo, error) {
+	return c.DeployDeviceWithImage(appName, dev, devTargetIP, container, "", configlets...)
 }
 
 // DeployDeviceWithImage Move a device from the undefined container to a target container
 // and apply image. Optionally, apply device-specific configlets to the device.
-func (c CvpRestAPI) DeployDeviceWithImage(netElement *NetElement, container *Container,
-	image string, configlets ...Configlet) (*TaskInfo, error) {
-	if _, err := c.MoveDeviceToContainer(netElement, container, false); err != nil {
+func (c CvpRestAPI) DeployDeviceWithImage(appName string, dev *NetElement, devTargetIP string,
+	container *Container, image string, configlets ...Configlet) (*TaskInfo, error) {
+	if _, err := c.MoveDeviceToContainer(appName, dev, container, false); err != nil {
 		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 	}
 
-	conf, err := c.GetTempConfigByNetElementID(netElement.SystemMacAddress)
+	conf, err := c.GetTempConfigByNetElementID(dev.SystemMacAddress)
 	applyConfiglets := conf.ProposedConfiglets
 	if configlets != nil {
 		applyConfiglets = append(applyConfiglets, configlets...)
 	}
 
-	if _, err = c.ApplyConfigletsToDevice("DeployDevice", netElement, false,
-		applyConfiglets...); err != nil {
+	curConfiglets, err := c.GetConfigletsByDeviceID(dev.SystemMacAddress)
+	if err != nil {
+		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
+	}
+
+	_, cnames, ckeys, cbnames, cbkeys, err := checkConfigMapping(curConfiglets,
+		applyConfiglets)
+	if err != nil {
+		return nil, errors.Wrap(err, "DeployDeviceWithImage")
+	}
+
+	info := appName + ": Configlet Assign: to Device " + dev.Fqdn
+	infoPreview := "<b>Configlet Assign:</b> to Device" + dev.Fqdn
+
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
+		Action{
+			Info:                            info,
+			InfoPreview:                     infoPreview,
+			Note:                            "",
+			Action:                          "associate",
+			NodeType:                        "configlet",
+			NodeID:                          "",
+			ConfigletBuilderList:            cbkeys,
+			ConfigletBuilderNamesList:       cbnames,
+			ConfigletList:                   ckeys,
+			ConfigletNamesList:              cnames,
+			IgnoreConfigletBuilderNamesList: []string{},
+			IgnoreConfigletBuilderList:      []string{},
+			IgnoreConfigletNamesList:        []string{},
+			IgnoreConfigletList:             []string{},
+			ToID:                            dev.SystemMacAddress,
+			ToIDType:                        "netelement",
+			FromID:                          "",
+			NodeIPAddress:                   dev.IPAddress,
+			NodeName:                        "",
+			NodeTargetIPAddress:             devTargetIP,
+			FromName:                        "",
+			ToName:                          dev.Fqdn,
+			ChildTasks:                      []string{},
+			ParentTask:                      "",
+		},
+	}}
+
+	if err := c.addTempAction(data); err != nil {
 		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 	}
 
@@ -1425,7 +1481,7 @@ func (c CvpRestAPI) DeployDeviceWithImage(netElement *NetElement, container *Con
 		if err != nil {
 			return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 		}
-		if _, err = c.ApplyImageToDevice(imageBundle, netElement, false); err != nil {
+		if _, err = c.ApplyImageToDevice(appName, imageBundle, dev, false); err != nil {
 			return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 		}
 	}
