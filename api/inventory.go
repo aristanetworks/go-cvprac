@@ -34,6 +34,7 @@ package cvpapi
 import (
 	"encoding/json"
 	"net/url"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -358,7 +359,8 @@ func (c CvpRestAPI) GetContainerByName(name string) (*Container, error) {
 		return nil, errors.Errorf("GetContainerByName: %s", err)
 	}
 	for _, container := range containers {
-		if container.Name == name {
+		// Container names are not case sensitive
+		if strings.ToLower(container.Name) == strings.ToLower(name) {
 			return &container, nil
 		}
 	}
