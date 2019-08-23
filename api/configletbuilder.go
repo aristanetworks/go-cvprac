@@ -165,18 +165,9 @@ type ConfigletExecStatus struct {
 
 // GenerateAutoConfiglet ...
 // If devKeyList is empty, then exec on all devices in container
-func (c CvpRestAPI) GenerateAutoConfiglet(devKeyList []string, builder *Configlet,
-	container *Container, pageType string) ([]ConfigletExecStatus, error) {
+func (c CvpRestAPI) GenerateAutoConfiglet(devKeyList []string, builderKey string,
+	containerKey string, pageType string) ([]ConfigletExecStatus, error) {
 	var info AutoConfigletResp
-	var containerKey string
-
-	if builder == nil {
-		return nil, errors.Errorf("GenerateAutoConfiglet: builder nil")
-	}
-
-	if container != nil {
-		containerKey = container.Key
-	}
 
 	if pageType != "netelement" && pageType != "container" {
 		return nil, errors.Errorf("GenerateAutoConfiglet: pageType must be " +
@@ -185,7 +176,7 @@ func (c CvpRestAPI) GenerateAutoConfiglet(devKeyList []string, builder *Configle
 
 	data := map[string]interface{}{
 		"netElementIds":      devKeyList,
-		"configletBuilderId": builder.Key,
+		"configletBuilderId": builderKey,
 		"containerId":        containerKey,
 		"pageType":           pageType,
 	}
@@ -233,8 +224,8 @@ func (c CvpRestAPI) GenerateConfigletForDevice(dev *NetElement, builder *Configl
 	}
 
 	builderStatus, err := c.GenerateAutoConfiglet([]string{dev.SystemMacAddress},
-		builderConfiglet,
-		nil, pageType)
+		builderConfiglet.Key,
+		"", pageType)
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateConfigletForDevice")
 	}
@@ -271,8 +262,8 @@ func (c CvpRestAPI) GenerateConfigletForContainer(container *Container,
 	}
 
 	builderStatus, err := c.GenerateAutoConfiglet(devMacList,
-		builderConfiglet,
-		container, pageType)
+		builderConfiglet.Key,
+		container.Key, pageType)
 	if err != nil {
 		return nil, errors.Wrap(err, "GenerateConfigletForContainer")
 	}
