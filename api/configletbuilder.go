@@ -38,6 +38,49 @@ import (
 	"github.com/pkg/errors"
 )
 
+// BuilderInfo represents the builders for a netelemet
+type BuilderInfo struct {
+	Total           int           `json:"total"`
+	BuilderList     []Configlet   `json:"builderList"`
+	BuildMapperList []BuilderMaps `json:"buildMapperList"`
+
+	ErrorResponse
+}
+
+// BuilderMaps represents
+type BuilderMaps struct {
+	BuilderName   string `json:"builderName"`
+	BuilderID     string `json:"builderId"`
+	ContainerID   string `json:"containerId"`
+	ContainerName string `json:"containerName"`
+}
+
+// GetHierarchicalConfigletBuilders returns the configlet with the specified key
+func (c CvpRestAPI) GetHierarchicalConfigletBuilders(container *Container) (*BuilderInfo, error) {
+	var info BuilderInfo
+
+	if container == nil {
+		return nil, errors.Errorf("GetHierarchicalConfigletBuilders: container nil")
+	}
+
+	query := &url.Values{
+		"containerId": {container.Key},
+		"queryParam":  {},
+		"startIndex":  {"0"},
+		"endIndex":    {"0"},
+	}
+
+	resp, err := c.client.Get("/configlet/getHierarchicalConfigletBuilders.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetHierarchicalConfigletBuilders: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return nil, errors.Errorf("GetHierarchicalConfigletBuilders: %s Payload:\n%s", err, resp)
+	}
+	return &info, nil
+}
+
 // ConfigletBuilder represents ConfigletBuilder info
 type ConfigletBuilder struct {
 	IsAssigned bool          `json:"isAssigned"`
