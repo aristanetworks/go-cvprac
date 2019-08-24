@@ -38,6 +38,7 @@ import "net/url"
 type ClientInterface interface {
 	Get(string, *url.Values) ([]byte, error)
 	Post(string, *url.Values, interface{}) ([]byte, error)
+	Delete(string, *url.Values, interface{}) ([]byte, error)
 }
 
 // CvpRestAPI provides the REST functionallity
