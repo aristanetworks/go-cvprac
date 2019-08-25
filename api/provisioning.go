@@ -1417,12 +1417,44 @@ func (c CvpRestAPI) DeployDevice(appName string, dev *NetElement, devTargetIP st
 // and apply image. Optionally, apply device-specific configlets to the device.
 func (c CvpRestAPI) DeployDeviceWithImage(appName string, dev *NetElement, devTargetIP string,
 	container *Container, image string, configlets ...Configlet) (*TaskInfo, error) {
+	var applyConfiglets []Configlet
+
 	if _, err := c.MoveDeviceToContainer(appName, dev, container, false); err != nil {
+		c.ClearAllTempActions()
 		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 	}
 
+	// The the hierarchical Configlet BuilderInfo
+	cblInfoList, err := c.GetHierarchicalConfigletBuilders(container)
+	if err != nil {
+		return nil, errors.Wrap(err, "DeployDeviceWithImage")
+	}
+
+	// Generate configlets using the builders
+	for _, builder := range cblInfoList.BuildMapperList {
+		cb, err := c.GetConfigletBuilderByKey(builder.BuilderID)
+		if err != nil {
+			return nil, errors.Wrap(err, "DeployDeviceWithImage")
+		}
+		// Builders with FormLists or SSLConfig skip
+		if len(cb.FormList) != 0 || cb.SSLConfig {
+			continue
+		}
+
+		cbInfo, err := c.GenerateAutoConfiglet([]string{dev.SystemMacAddress}, builder.BuilderID,
+			container.Key, "netelement")
+		if err != nil {
+			return nil, errors.Wrap(err, "DeployDeviceWithImage")
+		}
+		if len(cbInfo) != 1 {
+			return nil, errors.Errorf("DeployDeviceWithImage: No generated Configlet "+
+				"for builder [%s]", builder.BuilderName)
+		}
+		applyConfiglets = append(applyConfiglets, cbInfo[0].Configlet)
+	}
+
 	conf, err := c.GetTempConfigByNetElementID(dev.SystemMacAddress)
-	applyConfiglets := conf.ProposedConfiglets
+	applyConfiglets = append(applyConfiglets, conf.ProposedConfiglets...)
 	if configlets != nil {
 		applyConfiglets = append(applyConfiglets, configlets...)
 	}
@@ -1464,15 +1496,18 @@ func (c CvpRestAPI) DeployDeviceWithImage(appName string, dev *NetElement, devTa
 			FromID:                          "",
 			NodeIPAddress:                   dev.IPAddress,
 			NodeName:                        "",
-			NodeTargetIPAddress:             devTargetIP,
-			FromName:                        "",
-			ToName:                          dev.Fqdn,
-			ChildTasks:                      []string{},
-			ParentTask:                      "",
+			// The target IP needs to be set. AssignConfigletToDevice() doesn't perform
+			// this thus we setup the Action here.
+			NodeTargetIPAddress: devTargetIP,
+			FromName:            "",
+			ToName:              dev.Fqdn,
+			ChildTasks:          []string{},
+			ParentTask:          "",
 		},
 	}}
 
 	if err := c.addTempAction(data); err != nil {
+		c.ClearAllTempActions()
 		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 	}
 
@@ -1482,10 +1517,18 @@ func (c CvpRestAPI) DeployDeviceWithImage(appName string, dev *NetElement, devTa
 			return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 		}
 		if _, err = c.ApplyImageToDevice(appName, imageBundle, dev, false); err != nil {
+			c.ClearAllTempActions()
 			return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 		}
 	}
-	return c.SaveTopology()
+
+	// Clear the temp Actions if we have issues
+	var taskInfo *TaskInfo
+	if taskInfo, err = c.SaveTopology(); err != nil {
+		c.ClearAllTempActions()
+		return nil, errors.Wrap(err, "DeployDeviceWithImage")
+	}
+	return taskInfo, nil
 }
 
 // TempConfig ...
@@ -1523,6 +1566,29 @@ func (c CvpRestAPI) GetTempConfigByNetElementID(netElementID string) (*TempConfi
 		return nil, errors.Errorf("GetTempConfigByNetElementID: %s", err)
 	}
 	return &resp, nil
+
+}
+
+// ClearAllTempActions clears outstanding actions
+func (c CvpRestAPI) ClearAllTempActions() (string, error) {
+	var resp struct {
+		Data string `json:"data"`
+		ErrorResponse
+	}
+
+	reqResp, err := c.client.Delete("/ztp/deleteAllTempAction.do", nil, nil)
+	if err != nil {
+		return "", errors.Errorf("GetTempActions: %s", err)
+	}
+
+	if err = json.Unmarshal(reqResp, &resp); err != nil {
+		return "", errors.Errorf("GetTempActions: %s Payload:\n%s", err, reqResp)
+	}
+
+	if err := resp.Error(); err != nil {
+		return "", errors.Errorf("GetTempActions: %s", err)
+	}
+	return resp.Data, nil
 
 }
 

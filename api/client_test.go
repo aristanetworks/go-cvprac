@@ -33,6 +33,11 @@ func (c *MockClient) Post(url string, params *url.Values, data interface{}) ([]b
 	return c.response, c.err
 }
 
+// Delete satisfies the api ClientInterface for Delete operation
+func (c *MockClient) Delete(url string, params *url.Values, data interface{}) ([]byte, error) {
+	return c.response, c.err
+}
+
 // RealClient is a simple client implementing the cvpapi ClientInterface
 type RealClient struct {
 	ClientInterface

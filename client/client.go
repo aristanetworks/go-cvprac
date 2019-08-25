@@ -397,6 +397,8 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 			resp, err = request.Get(url)
 		case "POST":
 			resp, err = request.SetBody(data).Post(url)
+		case "DELETE":
+			resp, err = request.SetBody(data).Delete(url)
 		default:
 			return nil, errors.Errorf("Invalid. Request type [%s] not implemented", reqType)
 		}
@@ -456,6 +458,11 @@ func (c *CvpClient) Get(url string, params *url.Values) ([]byte, error) {
 // Post implemented as part of cvprac api client interface
 func (c *CvpClient) Post(url string, params *url.Values, data interface{}) ([]byte, error) {
 	return c.makeRequest("POST", url, params, data)
+}
+
+// Delete implemented as part of cvprac api client interface
+func (c *CvpClient) Delete(url string, params *url.Values, data interface{}) ([]byte, error) {
+	return c.makeRequest("DELETE", url, params, data)
 }
 
 func parseURLValues(params *url.Values) (map[string]string, error) {

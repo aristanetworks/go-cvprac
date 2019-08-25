@@ -186,6 +186,31 @@ func (c CvpRestAPI) GetConfigletByName(name string) (*Configlet, error) {
 	return &info, nil
 }
 
+// GetConfigletByID returns the configlet with the specified ID
+func (c CvpRestAPI) GetConfigletByID(ID string) (*Configlet, error) {
+	var info Configlet
+
+	query := &url.Values{"id": {ID}}
+
+	resp, err := c.client.Get("/configlet/getConfigletById.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetConfigletByID: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return nil, errors.Errorf("GetConfigletByID: %s Payload:\n%s", err, resp)
+	}
+
+	if err := info.Error(); err != nil {
+		// Entity does not exist
+		if info.ErrorCode == "132801" {
+			return nil, nil
+		}
+		return nil, errors.Errorf("GetConfigletByID: %s", err)
+	}
+	return &info, nil
+}
+
 // GetConfigletHistory returns the history for a configlet provided the key, and a range.
 func (c CvpRestAPI) GetConfigletHistory(key string, start int,
 	end int) (*ConfigletHistoryList, error) {
