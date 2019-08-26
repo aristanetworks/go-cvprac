@@ -1072,15 +1072,17 @@ func (c CvpRestAPI) MoveDeviceToContainer(appName string, device *NetElement,
 		fromName = parentCont.Name
 	}
 
-	msg := appName + ": Moving device " + device.Fqdn + " from container " + fromID +
+	info := appName + ": Moving device " + device.Fqdn + " from container " + fromID +
+		" to container " + container.Name
+	infoPreview := "<b>Moving device:</b> " + device.Fqdn + " from container " + fromID +
 		" to container " + container.Name
 
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
 		Action{
-			Info:        msg,
-			InfoPreview: msg,
+			Info:        info,
+			InfoPreview: infoPreview,
 			Action:      "update",
 			NodeType:    "netelement",
 			NodeID:      device.SystemMacAddress,
@@ -1417,43 +1419,22 @@ func (c CvpRestAPI) DeployDevice(appName string, dev *NetElement, devTargetIP st
 // and apply image. Optionally, apply device-specific configlets to the device.
 func (c CvpRestAPI) DeployDeviceWithImage(appName string, dev *NetElement, devTargetIP string,
 	container *Container, image string, configlets ...Configlet) (*TaskInfo, error) {
-	var applyConfiglets []Configlet
 
 	if _, err := c.MoveDeviceToContainer(appName, dev, container, false); err != nil {
 		c.ClearAllTempActions()
 		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 	}
 
-	// The the hierarchical Configlet BuilderInfo
-	cblInfoList, err := c.GetHierarchicalConfigletBuilders(container)
+	applyConfiglets, err := c.GenerateHierarchicalConfiglets(dev, container)
 	if err != nil {
-		return nil, errors.Wrap(err, "DeployDeviceWithImage")
-	}
-
-	// Generate configlets using the builders
-	for _, builder := range cblInfoList.BuildMapperList {
-		cb, err := c.GetConfigletBuilderByKey(builder.BuilderID)
-		if err != nil {
-			return nil, errors.Wrap(err, "DeployDeviceWithImage")
-		}
-		// Builders with FormLists or SSLConfig skip
-		if len(cb.FormList) != 0 || cb.SSLConfig {
-			continue
-		}
-
-		cbInfo, err := c.GenerateAutoConfiglet([]string{dev.SystemMacAddress}, builder.BuilderID,
-			container.Key, "netelement")
-		if err != nil {
-			return nil, errors.Wrap(err, "DeployDeviceWithImage")
-		}
-		if len(cbInfo) != 1 {
-			return nil, errors.Errorf("DeployDeviceWithImage: No generated Configlet "+
-				"for builder [%s]", builder.BuilderName)
-		}
-		applyConfiglets = append(applyConfiglets, cbInfo[0].Configlet)
+		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
 	}
 
 	conf, err := c.GetTempConfigByNetElementID(dev.SystemMacAddress)
+	if err != nil {
+		return nil, errors.Errorf("DeployDeviceWithImage: %s", err)
+	}
+
 	applyConfiglets = append(applyConfiglets, conf.ProposedConfiglets...)
 	if configlets != nil {
 		applyConfiglets = append(applyConfiglets, configlets...)
@@ -1470,8 +1451,8 @@ func (c CvpRestAPI) DeployDeviceWithImage(appName string, dev *NetElement, devTa
 		return nil, errors.Wrap(err, "DeployDeviceWithImage")
 	}
 
-	info := appName + ": Configlet Assign: to Device " + dev.Fqdn
-	infoPreview := "<b>Configlet Assign:</b> to Device" + dev.Fqdn
+	info := appName + ": DeployDevice: Configlet Assign - Device " + dev.Fqdn
+	infoPreview := "<b>DeployDevice: Configlet Assign</b> - Device" + dev.Fqdn
 
 	data := struct {
 		Data []Action `json:"data,omitempty"`
@@ -1529,6 +1510,49 @@ func (c CvpRestAPI) DeployDeviceWithImage(appName string, dev *NetElement, devTa
 		return nil, errors.Wrap(err, "DeployDeviceWithImage")
 	}
 	return taskInfo, nil
+}
+
+// GenerateHierarchicalConfiglets ...
+func (c CvpRestAPI) GenerateHierarchicalConfiglets(dev *NetElement,
+	container *Container) ([]Configlet, error) {
+	var applyConfiglets []Configlet
+
+	if dev == nil {
+		return nil, errors.Errorf("GenerateHierarchicalConfiglets: nil NetElement")
+	}
+	if container == nil {
+		return nil, errors.Errorf("GenerateHierarchicalConfiglets: nil Container")
+	}
+
+	// The the hierarchical Configlet BuilderInfo
+	cblInfoList, err := c.GetHierarchicalConfigletBuilders(container)
+	if err != nil {
+		return nil, errors.Wrap(err, "GenerateHierarchicalConfiglets")
+	}
+
+	// Generate configlets using the builders
+	for _, builder := range cblInfoList.BuildMapperList {
+		cb, err := c.GetConfigletBuilderByKey(builder.BuilderID)
+		if err != nil {
+			return nil, errors.Wrap(err, "GenerateHierarchicalConfiglets")
+		}
+		// Builders with FormLists or SSLConfig skip
+		if len(cb.FormList) != 0 || cb.SSLConfig {
+			continue
+		}
+
+		cbInfo, err := c.GenerateAutoConfiglet([]string{dev.SystemMacAddress}, builder.BuilderID,
+			container.Key, "netelement")
+		if err != nil {
+			return nil, errors.Wrap(err, "GenerateHierarchicalConfiglets")
+		}
+		if len(cbInfo) != 1 {
+			return nil, errors.Errorf("GenerateHierarchicalConfiglets: No generated Configlet "+
+				"for builder [%s]", builder.BuilderName)
+		}
+		applyConfiglets = append(applyConfiglets, cbInfo[0].Configlet)
+	}
+	return applyConfiglets, nil
 }
 
 // TempConfig ...
