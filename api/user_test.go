@@ -32,8 +32,9 @@
 package cvpapi
 
 import (
-	"errors"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func Test_CvpGetAllUsersRetError_UnitTest(t *testing.T) {
@@ -200,4 +201,58 @@ func Test_CvpGetUserValid_UnitTest(t *testing.T) {
 		t.Fatalf("Valid case failed with error: %v", err)
 	}
 
+}
+func Test_CvpAddNilUser_UnitTest(t *testing.T) {
+	nilUserErr := errors.New("can not add nil user")
+	client := NewMockClient("", nilUserErr)
+	api := NewCvpRestAPI(client)
+	expectedErr := errors.Errorf("AddUser: %s", nilUserErr.Error())
+
+	if err := api.AddUser(nil); err.Error() != expectedErr.Error() {
+		t.Fatalf("Expected error: [%v] But received: [%v]", expectedErr, err)
+	}
+}
+
+func Test_CvpAddUserAlreadyExists_UnitTest(t *testing.T) {
+	resp := `{ 
+	"user": { 
+		"userId": "test"
+	},	
+	"errorCode": "202518",
+	"errorMessage": "User already exists"
+	}`
+	client := NewMockClient(resp, nil)
+	api := NewCvpRestAPI(client)
+	user := &SingleUser{
+		UserData: User{
+			UserID: "test",
+		},
+		Roles: nil,
+	}
+
+	err := api.AddUser(user)
+	if err.Error() != "AddUser: user 'test' already exists" {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
+func Test_CvpAddUserValid_UnitTest(t *testing.T) {
+	resp := `{ 
+		"user": { 
+			"userId": "test"
+		}
+	}`
+	client := NewMockClient(resp, nil)
+	api := NewCvpRestAPI(client)
+	user := &SingleUser{
+		UserData: User{
+			UserID: "test",
+		},
+		Roles: nil,
+	}
+
+	err := api.AddUser(user)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
 }

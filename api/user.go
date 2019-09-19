@@ -109,3 +109,29 @@ func (c CvpRestAPI) GetUser(userID string) (*SingleUser, error) {
 	}
 	return &info, nil
 }
+
+// AddUser adds 'user' and returns error if any
+func (c CvpRestAPI) AddUser(user *SingleUser) error {
+	if user == nil {
+		return errors.New("AddUser: can not add nil user")
+	}
+	resp, err := c.client.Post("/user/addUser.do", nil, user)
+	if err != nil {
+		return errors.Errorf("AddUser: %s", err)
+	}
+	var addedUser *SingleUser
+	if err = json.Unmarshal(resp, &addedUser); err != nil {
+		return errors.Errorf("AddUser: JSON unmarshal error: \n%v", err)
+	}
+	if err = addedUser.Error(); err != nil {
+		var retErr error
+		if addedUser.ErrorCode == USER_ALREADY_EXISTS ||
+			addedUser.ErrorCode == DATA_ALREADY_EXISTS {
+			retErr = errors.Errorf("AddUser: user '%s' already exists", addedUser.UserData.UserID)
+		} else {
+			retErr = errors.Errorf("AddUser: %s", addedUser.String())
+		}
+		return retErr
+	}
+	return nil
+}
