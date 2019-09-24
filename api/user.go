@@ -35,8 +35,14 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
+)
+
+var (
+	defaultUser = "cvpadmin"
+	successMsg  = "success"
 )
 
 // UserList represents a list of users and the roles
@@ -134,4 +140,69 @@ func (c CvpRestAPI) AddUser(user *SingleUser) error {
 		return retErr
 	}
 	return nil
+}
+
+// DeleteUsers deletes specified users
+func (c CvpRestAPI) DeleteUsers(userIds []string) error {
+	if len(userIds) == 0 {
+		return errors.New("DeleteUsers: no user specified for deletion")
+	}
+	resp, err := c.client.Post("/user/deleteUsers.do", nil, userIds)
+	if err != nil {
+		return errors.Errorf("DeleteUsers: %s", err)
+	}
+	var msg struct {
+		ResponseMessage string `json:"data"`
+		ErrorResponse
+	}
+	if err = json.Unmarshal(resp, &msg); err != nil {
+		return errors.Errorf("DeleteUsers: JSON unmarshal error: \n%v", err)
+	}
+	var retErr error
+	if err = msg.Error(); err != nil {
+		switch msg.ErrorCode {
+		case SUPERUSER_DELETE_ATTEMPT:
+			retErr = errors.Errorf("DeleteUsers: cannot delete superuser '%s'", defaultUser)
+		case INVALID_USER_DELETE:
+			retErr = errors.Errorf("DeleteUsers: one of the users in %v does not exist", userIds)
+		default:
+			retErr = errors.Errorf("DeleteUsers: Unexpected error: %v", err)
+		}
+	} else {
+		lowerCaseResp := strings.ToLower(msg.ResponseMessage)
+		if !strings.Contains(lowerCaseResp, successMsg) {
+			retErr = errors.New("DeleteUsers: Successful deletion response not found")
+		}
+	}
+	return retErr
+}
+
+// UpdateUser updates 'user' having userObj
+func (c CvpRestAPI) UpdateUser(user string, userObj *SingleUser) error {
+	param := &url.Values{"userId": {user}}
+	resp, err := c.client.Post("/user/updateUser.do", param, userObj)
+	if err != nil {
+		return errors.Errorf("UpdateUser: %v", err)
+	}
+	var msg struct {
+		ResponseMessage string `json:"data"`
+		ErrorResponse
+	}
+	if err = json.Unmarshal(resp, &msg); err != nil {
+		return errors.Errorf("UpdateUsers: JSON unmarshal error: \n%v", err)
+	}
+	var retErr error
+	if err = msg.Error(); err != nil {
+		if msg.ErrorCode == SUPERUSER_EDIT_ATTEMPT {
+			retErr = errors.Errorf("UpdateUsers: can not edit super user '%s'", defaultUser)
+		} else {
+			retErr = errors.Errorf("UpdateUsers: %v", err)
+		}
+	} else {
+		lowerCaseResp := strings.ToLower(msg.ResponseMessage)
+		if !strings.Contains(lowerCaseResp, successMsg) {
+			retErr = errors.New("UpdateUsers: Successful updation response not found")
+		}
+	}
+	return retErr
 }
