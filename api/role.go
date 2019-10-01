@@ -35,6 +35,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -49,7 +50,7 @@ type RoleList struct {
 
 // SingleRole represents one role
 type SingleRole struct {
-	RoleDate Role `json:"role"`
+	RoleData Role `json:"role"`
 
 	ErrorResponse
 }
@@ -106,4 +107,92 @@ func (c CvpRestAPI) GetRole(roleID string) (*SingleRole, error) {
 		return nil, errors.Errorf("GetRole: %s", err)
 	}
 	return &info, nil
+}
+
+// AddRole adds a custom role
+func (c CvpRestAPI) AddRole(role *SingleRole) error {
+	if role == nil {
+		return errors.New("AddRole: can not add nil role")
+	}
+
+	resp, err := c.client.Post("/role/createRole.do", nil, role.RoleData)
+	if err != nil {
+		return errors.Errorf("AddRole: Error: [%v]", err)
+	}
+	var returnedRole SingleRole
+	if err = json.Unmarshal(resp, &returnedRole); err != nil {
+		return errors.Errorf("AddRole: unmarshal error - [%v] \nin response - [%v]", err, resp)
+	}
+	var retErr error
+	if err = returnedRole.Error(); err != nil {
+		if returnedRole.ErrorCode == ROLE_ALREADY_EXISTS {
+			retErr = errors.Errorf("AddRole: Role with key '%s' already exists", role.RoleData.Key)
+		} else {
+			retErr = errors.Errorf("AddRole: %s", err)
+		}
+	}
+	return retErr
+}
+
+// DeleteRoles deletes the roles with specified keys
+func (c CvpRestAPI) DeleteRoles(roleIds []string) error {
+	if len(roleIds) == 0 {
+		return errors.New("DeleteRoles: empty roleId list")
+	}
+	resp, err := c.client.Post("/role/deleteRoles.do", nil, roleIds)
+	if err != nil {
+		return errors.Errorf("DeleteRoles: Error: [%v]", err)
+	}
+	var msg struct {
+		ResponseMessage string `json:"data"`
+		ErrorResponse
+	}
+	if err := json.Unmarshal(resp, &msg); err != nil {
+		return errors.Errorf("DeleteRoles: unmarshal error - [%v] \nin response - [%v]", err, resp)
+	}
+	var retErr error
+	if err := msg.Error(); err != nil {
+		switch msg.ErrorCode {
+		case DEFAULT_ROLE_DELETE:
+			retErr = errors.Errorf("DeleteRoles: can not delete default role: [%s]", roleIds)
+		case INVALID_ROLE, ENTITY_DOES_NOT_EXIST:
+			retErr = errors.Errorf("DeleteRoles: one of the role in [%s] does not exist", roleIds)
+		default:
+			retErr = errors.Errorf("DeleteRoles: Unexpected error: %v", err)
+		}
+	} else {
+		lowerCaseResp := strings.ToLower(msg.ResponseMessage)
+		if !strings.Contains(lowerCaseResp, successMsg) {
+			retErr = errors.Errorf("DeleteRoles: Successful deletion response not found in [%s]",
+				lowerCaseResp)
+		}
+	}
+	return retErr
+}
+
+// UpdateRole updates the given role and also the user permissions
+func (c CvpRestAPI) UpdateRole(role *SingleRole) error {
+	if role == nil {
+		return errors.New("UpdateRole: can not update a nil role")
+	}
+	resp, err := c.client.Post("/role/updateRole.do", nil, role.RoleData)
+	if err != nil {
+		return errors.Errorf("UpdateRole: Error: [%v]", err)
+	}
+	var msg struct {
+		ResponseMessage string `json:"data"`
+		ErrorResponse
+	}
+	if err := json.Unmarshal(resp, &msg); err != nil {
+		return errors.Errorf("UpdateRole: unmarshal error - [%v] \nin response - [%v]", err, resp)
+	}
+	if err = msg.Error(); err != nil {
+		return errors.Errorf("UpdateRole: Unexpected error - [%v]", err)
+	}
+	lowerCaseResp := strings.ToLower(msg.ResponseMessage)
+	if !strings.Contains(lowerCaseResp, successMsg) {
+		return errors.Errorf("UpdateRole: Successful update response not found in [%s]",
+			lowerCaseResp)
+	}
+	return nil
 }
