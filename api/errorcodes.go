@@ -37,8 +37,10 @@ const (
 	ENTITY_DOES_NOT_EXIST            = "132801"
 	NETELEMENT_ENTITY_DOES_NOT_EXIST = "122801"
 	ROLE_ALREADY_EXISTS              = "232518"
+	DEFAULT_ROLE_DELETE              = "232809"
+	INVALID_ROLE                     = "232889"
 	USER_ALREADY_EXISTS              = "202518"
 	SUPERUSER_DELETE_ATTEMPT         = "202886"
 	SUPERUSER_EDIT_ATTEMPT           = "202885"
-	INVALID_USER_DELETE              = "202889"
+	INVALID_USER                     = "202889"
 )

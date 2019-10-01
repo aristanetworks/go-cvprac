@@ -163,7 +163,7 @@ func (c CvpRestAPI) DeleteUsers(userIds []string) error {
 		switch msg.ErrorCode {
 		case SUPERUSER_DELETE_ATTEMPT:
 			retErr = errors.Errorf("DeleteUsers: cannot delete superuser '%s'", defaultUser)
-		case INVALID_USER_DELETE:
+		case INVALID_USER:
 			retErr = errors.Errorf("DeleteUsers: one of the users in %v does not exist", userIds)
 		default:
 			retErr = errors.Errorf("DeleteUsers: Unexpected error: %v", err)
