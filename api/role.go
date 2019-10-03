@@ -88,7 +88,7 @@ func (c CvpRestAPI) GetAllRoles(start, end int) (*RoleList, error) {
 func (c CvpRestAPI) GetRole(roleID string) (*SingleRole, error) {
 	var info SingleRole
 
-	query := &url.Values{"userId": {roleID}}
+	query := &url.Values{"roleId": {roleID}}
 
 	resp, err := c.client.Get("/role/getRole.do", query)
 	if err != nil {
