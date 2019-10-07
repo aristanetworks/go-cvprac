@@ -84,19 +84,19 @@ func (c CvpRestAPI) GetAllRoles(start, end int) (*RoleList, error) {
 	return &roles, nil
 }
 
-// GetRole returns the role with ID 'roleID'
-func (c CvpRestAPI) GetRole(roleID string) (*SingleRole, error) {
+// GetRoleByID returns the role with ID 'roleID'
+func (c CvpRestAPI) GetRoleByID(roleID string) (*SingleRole, error) {
 	var info SingleRole
 
 	query := &url.Values{"roleId": {roleID}}
 
 	resp, err := c.client.Get("/role/getRole.do", query)
 	if err != nil {
-		return nil, errors.Errorf("GetRole: %s", err)
+		return nil, errors.Errorf("GetRoleByID: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetRole: %s Payload:\n%s", err, resp)
+		return nil, errors.Errorf("GetRoleByID: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -104,24 +104,41 @@ func (c CvpRestAPI) GetRole(roleID string) (*SingleRole, error) {
 		if info.ErrorCode == "132801" {
 			return nil, nil
 		}
-		return nil, errors.Errorf("GetRole: %s", err)
+		return nil, errors.Errorf("GetRoleByID: %s", err)
 	}
 	return &info, nil
 }
 
+// GetRoleByName returns a role having name 'roleName'
+// by querying for all the roles and returning one that matches
+func (c CvpRestAPI) GetRoleByName(roleName string) (*SingleRole, error) {
+	allRoles, err := c.GetAllRoles(0, 0)
+	if err != nil {
+		return nil, errors.Errorf("GetRoleByName: [%s]", err)
+	}
+	if allRoles != nil {
+		for _, role := range allRoles.Roles {
+			if role.Name == roleName {
+				return &SingleRole{RoleData: role}, nil
+			}
+		}
+	}
+	return nil, errors.Errorf("GetRoleByName: could not find a role with role name- %s", roleName)
+}
+
 // AddRole adds a custom role
-func (c CvpRestAPI) AddRole(role *SingleRole) error {
+func (c CvpRestAPI) AddRole(role *SingleRole) (*SingleRole, error) {
 	if role == nil {
-		return errors.New("AddRole: can not add nil role")
+		return nil, errors.New("AddRole: can not add nil role")
 	}
 
 	resp, err := c.client.Post("/role/createRole.do", nil, role.RoleData)
 	if err != nil {
-		return errors.Errorf("AddRole: Error: [%v]", err)
+		return nil, errors.Errorf("AddRole: Error: [%v]", err)
 	}
 	var returnedRole SingleRole
 	if err = json.Unmarshal(resp, &returnedRole); err != nil {
-		return errors.Errorf("AddRole: unmarshal error - [%v] \nin response - [%v]", err, resp)
+		return nil, errors.Errorf("AddRole: unmarshal error- [%v] \nin response- [%v]", err, resp)
 	}
 	var retErr error
 	if err = returnedRole.Error(); err != nil {
@@ -131,7 +148,10 @@ func (c CvpRestAPI) AddRole(role *SingleRole) error {
 			retErr = errors.Errorf("AddRole: %s", err)
 		}
 	}
-	return retErr
+	if retErr == nil {
+		return &returnedRole, nil
+	}
+	return nil, retErr
 }
 
 // DeleteRoles deletes the roles with specified keys
