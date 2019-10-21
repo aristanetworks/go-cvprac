@@ -175,6 +175,17 @@ func Test_CvpGetUserReturnError_UnitTest(t *testing.T) {
 	}
 }
 
+func Test_CvpGetUserDoesNotExistError_UnitTest(t *testing.T) {
+	respStr := `{"errorCode": "132801",
+  				 "errorMessage": "entity does not exist"}`
+
+	client := NewMockClient(respStr, nil)
+	api := NewCvpRestAPI(client)
+	if _, err := api.GetUser("user"); err == nil {
+		t.Fatal("Error should be returned")
+	}
+}
+
 func Test_CvpGetUserValid_UnitTest(t *testing.T) {
 	data := `{
   "roles": [
