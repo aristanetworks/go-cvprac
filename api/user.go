@@ -108,8 +108,8 @@ func (c CvpRestAPI) GetUser(userID string) (*SingleUser, error) {
 
 	if err := info.Error(); err != nil {
 		// Entity does not exist
-		if info.ErrorCode == "132801" {
-			return nil, nil
+		if info.ErrorCode == ENTITY_DOES_NOT_EXIST {
+			return nil, errors.Errorf("GetUser: user '%s' does not exist", userID)
 		}
 		return nil, errors.Errorf("GetUser: %s", err)
 	}
