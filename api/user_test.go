@@ -32,8 +32,10 @@
 package cvpapi
 
 import (
-	"errors"
+	"fmt"
 	"testing"
+
+	"github.com/pkg/errors"
 )
 
 func Test_CvpGetAllUsersRetError_UnitTest(t *testing.T) {
@@ -173,6 +175,17 @@ func Test_CvpGetUserReturnError_UnitTest(t *testing.T) {
 	}
 }
 
+func Test_CvpGetUserDoesNotExistError_UnitTest(t *testing.T) {
+	respStr := `{"errorCode": "132801",
+  				 "errorMessage": "entity does not exist"}`
+
+	client := NewMockClient(respStr, nil)
+	api := NewCvpRestAPI(client)
+	if _, err := api.GetUser("user"); err == nil {
+		t.Fatal("Error should be returned")
+	}
+}
+
 func Test_CvpGetUserValid_UnitTest(t *testing.T) {
 	data := `{
   "roles": [
@@ -200,4 +213,140 @@ func Test_CvpGetUserValid_UnitTest(t *testing.T) {
 		t.Fatalf("Valid case failed with error: %v", err)
 	}
 
+}
+func Test_CvpAddNilUser_UnitTest(t *testing.T) {
+	client := NewMockClient("", nil)
+	api := NewCvpRestAPI(client)
+	expectedErr := errors.New("AddUser: can not add nil user")
+
+	if err := api.AddUser(nil); err.Error() != expectedErr.Error() {
+		t.Fatalf("Expected error: [%v] But received: [%v]", expectedErr, err)
+	}
+}
+
+func Test_CvpAddUserAlreadyExists_UnitTest(t *testing.T) {
+	resp := `{ 
+	"user": { 
+		"userId": "test"
+	},	
+	"errorCode": "202518",
+	"errorMessage": "User already exists"
+	}`
+	client := NewMockClient(resp, nil)
+	api := NewCvpRestAPI(client)
+	user := &SingleUser{
+		UserData: User{
+			UserID: "test",
+		},
+		Roles: nil,
+	}
+
+	err := api.AddUser(user)
+	if err.Error() != "AddUser: user 'test' already exists" {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
+func Test_CvpAddUserValid_UnitTest(t *testing.T) {
+	resp := `{ 
+		"user": { 
+			"userId": "test"
+		}
+	}`
+	client := NewMockClient(resp, nil)
+	api := NewCvpRestAPI(client)
+	user := &SingleUser{
+		UserData: User{
+			UserID: "test",
+		},
+		Roles: nil,
+	}
+
+	err := api.AddUser(user)
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
+func Test_CvpDeleteUsers_UnitTest(t *testing.T) {
+	testCases := []struct {
+		name        string
+		userIds     []string
+		resp        string
+		expectedErr error
+	}{
+		{
+			name:        "Empty usersId list",
+			userIds:     []string{},
+			expectedErr: errors.New("DeleteUsers: no user specified for deletion"),
+		},
+		{
+			name:        "Super user deletion",
+			userIds:     []string{defaultUser},
+			resp:        `{ "errorCode": "202886" }`,
+			expectedErr: errors.Errorf("DeleteUsers: cannot delete superuser '%s'", defaultUser),
+		},
+		{
+			name:    "Valid user deletion",
+			userIds: []string{"test"},
+			resp:    `{ "data" : "Success"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(tc.resp, nil)
+			api := NewCvpRestAPI(client)
+			receivedErr := api.DeleteUsers(tc.userIds)
+			if tc.expectedErr == nil {
+				assert(t, receivedErr == nil, fmt.Sprintf("Unexpected error: [%v]", receivedErr))
+			} else {
+				assert(t, receivedErr != nil, fmt.Sprint("Expected error but nil found"))
+				assert(t, tc.expectedErr.Error() == receivedErr.Error(),
+					fmt.Sprintf("Expected: [%v], \nFound: [%v]", tc.expectedErr, receivedErr))
+			}
+		})
+	}
+}
+
+func Test_UpdateUser_UnitTest(t *testing.T) {
+	testCases := []struct {
+		name        string
+		userName    string
+		userObj     SingleUser
+		resp        string
+		expectedErr error
+	}{
+		{
+			name:        "Super user edit",
+			userName:    defaultUser,
+			resp:        `{"errorCode": "202885"}`,
+			expectedErr: errors.Errorf("UpdateUsers: can not edit super user '%s'", defaultUser),
+		},
+		{
+			name:     "Valid update",
+			userName: "test",
+			userObj: SingleUser{
+				UserData: User{
+					UserID: "test",
+				},
+			},
+			resp: `{ "data": "success"}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(tc.resp, nil)
+			api := NewCvpRestAPI(client)
+			err := api.UpdateUser(tc.userName, &tc.userObj)
+			if tc.expectedErr == nil {
+				assert(t, err == nil, fmt.Sprintf("Unexpected error: %v", err))
+			} else {
+				assert(t, err != nil, "Expected error but none found")
+				assert(t, tc.expectedErr.Error() == err.Error(),
+					fmt.Sprintf("Expected: [%v], \nFound: [%v]", tc.expectedErr, err))
+			}
+		})
+	}
 }

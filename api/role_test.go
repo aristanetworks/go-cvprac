@@ -33,6 +33,8 @@ package cvpapi
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -275,12 +277,12 @@ func Test_CvpGetAllRolesValid2_UnitTest(t *testing.T) {
 
 func Test_CvpGetRoleRetError_UnitTest(t *testing.T) {
 	clientErr := errors.New("Client error")
-	expectedErr := errors.New("GetRole: Client error")
+	expectedErr := errors.New("GetRoleByID: Client error")
 
 	client := NewMockClient("", clientErr)
 	api := NewCvpRestAPI(client)
 
-	_, err := api.GetRole("role")
+	_, err := api.GetRoleByID("role")
 	if err.Error() != expectedErr.Error() {
 		t.Fatalf("Expected Client error: [%v] Got: [%v]", expectedErr, err)
 	}
@@ -289,7 +291,7 @@ func Test_CvpGetRoleRetError_UnitTest(t *testing.T) {
 func Test_CvpGetRoleJsonError_UnitTest(t *testing.T) {
 	client := NewMockClient("{", nil)
 	api := NewCvpRestAPI(client)
-	if _, err := api.GetRole("role"); err == nil {
+	if _, err := api.GetRoleByID("role"); err == nil {
 		t.Fatal("JSON unmarshal error should be returned")
 	}
 }
@@ -297,7 +299,7 @@ func Test_CvpGetRoleJsonError_UnitTest(t *testing.T) {
 func Test_CvpGetRoleEmptyJsonError_UnitTest(t *testing.T) {
 	client := NewMockClient("", nil)
 	api := NewCvpRestAPI(client)
-	if _, err := api.GetRole("role"); err == nil {
+	if _, err := api.GetRoleByID("role"); err == nil {
 		t.Fatal("JSON unmarshal error should be returned")
 	}
 }
@@ -308,7 +310,7 @@ func Test_CvpGetRoleReturnError_UnitTest(t *testing.T) {
 
 	client := NewMockClient(respStr, nil)
 	api := NewCvpRestAPI(client)
-	if _, err := api.GetRole("role"); err == nil {
+	if _, err := api.GetRoleByID("role"); err == nil {
 		t.Fatal("Error should be returned")
 	}
 }
@@ -403,9 +405,227 @@ func Test_CvpGetRoleValid_UnitTest(t *testing.T) {
 	client := NewMockClient(data, nil)
 	api := NewCvpRestAPI(client)
 
-	_, err := api.GetRole("network-admin")
+	_, err := api.GetRoleByID("network-admin")
 	if err != nil {
 		t.Fatalf("Valid case failed with error: %v", err)
 	}
+}
 
+func Test_AddRole_UnitTest(t *testing.T) {
+	testCases := []struct {
+		name           string
+		role           *SingleRole
+		resp           string
+		expectedErrStr string
+	}{
+		{
+			name:           "Nil role add",
+			expectedErrStr: "AddRole: can not add nil role",
+		},
+		{
+			name: "role exists",
+			role: &SingleRole{
+				RoleData: Role{
+					Key: "role_test",
+				},
+			},
+			resp:           `{ "errorCode": "232518" }`,
+			expectedErrStr: "AddRole: Role with key 'role_test' already exists",
+		},
+		{
+			name: "valid role",
+			role: &SingleRole{
+				RoleData: Role{
+					Key: "role_test",
+				},
+			},
+			resp: `{ "data": "success" }`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(tc.resp, nil)
+			api := NewCvpRestAPI(client)
+			_, receivedErr := api.AddRole(tc.role)
+			if tc.expectedErrStr == "" {
+				assert(t, receivedErr == nil, "No error should be found")
+			} else {
+				assert(t, receivedErr != nil, fmt.Sprintf("Error expected: '%s' but none found",
+					tc.expectedErrStr))
+				assert(t, tc.expectedErrStr == receivedErr.Error(), fmt.Sprintf(
+					"Expected: [%s],\nFound: [%s]", tc.expectedErrStr, receivedErr.Error()))
+			}
+		})
+	}
+}
+
+func Test_UpdateRole_UnitTest(t *testing.T) {
+	testCases := []struct {
+		name           string
+		role           *SingleRole
+		resp           string
+		expectedErrStr string
+	}{
+		{
+			name:           "Nil role update",
+			expectedErrStr: "UpdateRole: can not update a nil role",
+		},
+		{
+			name: "valid role",
+			role: &SingleRole{
+				RoleData: Role{
+					Key: "role_test",
+				},
+			},
+			resp: `{ "data": "success" }`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(tc.resp, nil)
+			api := NewCvpRestAPI(client)
+			receivedErr := api.UpdateRole(tc.role)
+			if tc.expectedErrStr == "" {
+				assert(t, receivedErr == nil, "No error should be found")
+			} else {
+				assert(t, receivedErr != nil, fmt.Sprintf("Error expected: '%s' but none found",
+					tc.expectedErrStr))
+				assert(t, tc.expectedErrStr == receivedErr.Error(), fmt.Sprintf(
+					"Expected: [%s],\nFound: [%s]", tc.expectedErrStr, receivedErr.Error()))
+			}
+		})
+	}
+}
+
+func Test_DeleteRoles_UnitTest(t *testing.T) {
+	testCases := []struct {
+		name           string
+		roleIds        []string
+		resp           string
+		expectedErrStr string
+	}{
+		{
+			name:           "empty roleId list",
+			expectedErrStr: "DeleteRoles: empty roleId list",
+		},
+		{
+			name:    "valid deletion",
+			roleIds: []string{"role_test"},
+			resp:    `{ "data": "success" }`,
+		},
+		{
+			name:           "default role delete",
+			roleIds:        []string{"role_test"},
+			resp:           `{"errorCode" : "232809"}`,
+			expectedErrStr: "DeleteRoles: can not delete default role: [[role_test]]",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(tc.resp, nil)
+			api := NewCvpRestAPI(client)
+			receivedErr := api.DeleteRoles(tc.roleIds)
+			if tc.expectedErrStr == "" {
+				assert(t, receivedErr == nil, "No error should be found")
+			} else {
+				assert(t, receivedErr != nil, fmt.Sprintf("Error expected: '%s' but none found",
+					tc.expectedErrStr))
+				assert(t, tc.expectedErrStr == receivedErr.Error(), fmt.Sprintf(
+					"Expected: [%s],\nFound: [%s]", tc.expectedErrStr, receivedErr.Error()))
+			}
+		})
+	}
+}
+
+func Test_GetRoleByName_UnitTest(t *testing.T) {
+	testCases := []struct {
+		name     string
+		roleName string
+		resp     string
+		errorStr string
+		role     *SingleRole
+	}{
+		{
+			name:     "empty role list returned",
+			resp:     `{"errorCode": "132801"}`,
+			errorStr: "GetRoleByName: could not find a role with role name- ",
+		},
+		{
+			name: "role not present",
+			resp: `{
+				"Roles": [  {
+						"name": "network-admin",
+						"key": "network-admin",
+						"description": "",
+						"moduleListSize": 1,
+						"moduleList": [
+						  {
+							"name": "image",
+							"mode": "rw"
+						  } ]
+							
+					} ]
+				}`,
+			roleName: "testRole",
+			errorStr: "GetRoleByName: could not find a role with role name- testRole",
+		},
+		{
+			name: "valid",
+			resp: `{
+					"Roles": [
+						{
+							"name": "network-admin",
+							"key": "network-admin",
+							"description": "",
+							"moduleListSize": 1,
+							"moduleList": [
+							  {
+								"name": "image",
+								"mode": "rw"
+							  } ]		
+						},
+						{
+							"name": "network-operator",
+							"key": "network-operator",
+							"description": "",
+							"moduleListSize": 1,
+							"moduleList": [
+							  {
+								"name": "image",
+								"mode": "rw"
+							  } ]								
+						}
+					]
+				}`,
+			roleName: "network-operator",
+			role: &SingleRole{
+				RoleData: Role{
+					Name:           "network-operator",
+					Key:            "network-operator",
+					ModuleListSize: 1,
+					ModuleList: []Module{
+						Module{Name: "image", Mode: "rw"},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := NewMockClient(tc.resp, nil)
+			api := NewCvpRestAPI(client)
+			role, err := api.GetRoleByName(tc.roleName)
+			if tc.errorStr == "" {
+				assert(t, err == nil, "Nil error expected")
+				assert(t, reflect.DeepEqual(tc.role, role),
+					"Received and expected roles are not equivalent")
+			} else {
+				assert(t, err != nil, "Error expected but not found")
+				assert(t, tc.errorStr == err.Error(),
+					fmt.Sprintf("Expected error - %s \nReceived error - %s", tc.errorStr,
+						err.Error()))
+			}
+		})
+	}
 }

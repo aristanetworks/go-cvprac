@@ -35,6 +35,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -49,7 +50,7 @@ type RoleList struct {
 
 // SingleRole represents one role
 type SingleRole struct {
-	RoleDate Role `json:"role"`
+	RoleData Role `json:"role"`
 
 	ErrorResponse
 }
@@ -83,19 +84,19 @@ func (c CvpRestAPI) GetAllRoles(start, end int) (*RoleList, error) {
 	return &roles, nil
 }
 
-// GetRole returns the role with ID 'roleID'
-func (c CvpRestAPI) GetRole(roleID string) (*SingleRole, error) {
+// GetRoleByID returns the role with ID 'roleID'
+func (c CvpRestAPI) GetRoleByID(roleID string) (*SingleRole, error) {
 	var info SingleRole
 
-	query := &url.Values{"userId": {roleID}}
+	query := &url.Values{"roleId": {roleID}}
 
 	resp, err := c.client.Get("/role/getRole.do", query)
 	if err != nil {
-		return nil, errors.Errorf("GetRole: %s", err)
+		return nil, errors.Errorf("GetRoleByID: %s", err)
 	}
 
 	if err = json.Unmarshal(resp, &info); err != nil {
-		return nil, errors.Errorf("GetRole: %s Payload:\n%s", err, resp)
+		return nil, errors.Errorf("GetRoleByID: %s Payload:\n%s", err, resp)
 	}
 
 	if err := info.Error(); err != nil {
@@ -103,7 +104,115 @@ func (c CvpRestAPI) GetRole(roleID string) (*SingleRole, error) {
 		if info.ErrorCode == "132801" {
 			return nil, nil
 		}
-		return nil, errors.Errorf("GetRole: %s", err)
+		return nil, errors.Errorf("GetRoleByID: %s", err)
 	}
 	return &info, nil
+}
+
+// GetRoleByName returns a role having name 'roleName'
+// by querying for all the roles and returning one that matches
+func (c CvpRestAPI) GetRoleByName(roleName string) (*SingleRole, error) {
+	allRoles, err := c.GetAllRoles(0, 0)
+	if err != nil {
+		return nil, errors.Errorf("GetRoleByName: [%s]", err)
+	}
+	if allRoles != nil {
+		for _, role := range allRoles.Roles {
+			if role.Name == roleName {
+				return &SingleRole{RoleData: role}, nil
+			}
+		}
+	}
+	return nil, errors.Errorf("GetRoleByName: could not find a role with role name- %s", roleName)
+}
+
+// AddRole adds a custom role
+func (c CvpRestAPI) AddRole(role *SingleRole) (*SingleRole, error) {
+	if role == nil {
+		return nil, errors.New("AddRole: can not add nil role")
+	}
+
+	resp, err := c.client.Post("/role/createRole.do", nil, role.RoleData)
+	if err != nil {
+		return nil, errors.Errorf("AddRole: Error: [%v]", err)
+	}
+	var returnedRole SingleRole
+	if err = json.Unmarshal(resp, &returnedRole); err != nil {
+		return nil, errors.Errorf("AddRole: unmarshal error- [%v] \nin response- [%v]", err, resp)
+	}
+	var retErr error
+	if err = returnedRole.Error(); err != nil {
+		if returnedRole.ErrorCode == ROLE_ALREADY_EXISTS {
+			retErr = errors.Errorf("AddRole: Role with key '%s' already exists", role.RoleData.Key)
+		} else {
+			retErr = errors.Errorf("AddRole: %s", err)
+		}
+	}
+	if retErr == nil {
+		return &returnedRole, nil
+	}
+	return nil, retErr
+}
+
+// DeleteRoles deletes the roles with specified keys
+func (c CvpRestAPI) DeleteRoles(roleIds []string) error {
+	if len(roleIds) == 0 {
+		return errors.New("DeleteRoles: empty roleId list")
+	}
+	resp, err := c.client.Post("/role/deleteRoles.do", nil, roleIds)
+	if err != nil {
+		return errors.Errorf("DeleteRoles: Error: [%v]", err)
+	}
+	var msg struct {
+		ResponseMessage string `json:"data"`
+		ErrorResponse
+	}
+	if err := json.Unmarshal(resp, &msg); err != nil {
+		return errors.Errorf("DeleteRoles: unmarshal error - [%v] \nin response - [%v]", err, resp)
+	}
+	var retErr error
+	if err := msg.Error(); err != nil {
+		switch msg.ErrorCode {
+		case DEFAULT_ROLE_DELETE:
+			retErr = errors.Errorf("DeleteRoles: can not delete default role: [%s]", roleIds)
+		case INVALID_ROLE, ENTITY_DOES_NOT_EXIST:
+			retErr = errors.Errorf("DeleteRoles: one of the role in [%s] does not exist", roleIds)
+		default:
+			retErr = errors.Errorf("DeleteRoles: Unexpected error: %v", err)
+		}
+	} else {
+		lowerCaseResp := strings.ToLower(msg.ResponseMessage)
+		if !strings.Contains(lowerCaseResp, successMsg) {
+			retErr = errors.Errorf("DeleteRoles: Successful deletion response not found in [%s]",
+				lowerCaseResp)
+		}
+	}
+	return retErr
+}
+
+// UpdateRole updates the given role and also the user permissions
+func (c CvpRestAPI) UpdateRole(role *SingleRole) error {
+	if role == nil {
+		return errors.New("UpdateRole: can not update a nil role")
+	}
+	resp, err := c.client.Post("/role/updateRole.do", nil, role.RoleData)
+	if err != nil {
+		return errors.Errorf("UpdateRole: Error: [%v]", err)
+	}
+	var msg struct {
+		ResponseMessage string `json:"data"`
+		ErrorResponse
+	}
+	if err := json.Unmarshal(resp, &msg); err != nil {
+		return errors.Errorf("UpdateRole: unmarshal error - [%v] \nin response - [%v]", err, resp)
+	}
+	if err = msg.Error(); err != nil {
+		return errors.Errorf("UpdateRole: Unexpected error - [%v]", err)
+	}
+	lowerCaseResp := strings.ToLower(msg.ResponseMessage)
+	if !strings.Contains(lowerCaseResp, successMsg) {
+		return errors.Errorf("UpdateRole: Successful update response not found in [%s]",
+			lowerCaseResp)
+	}
+	return nil
 }

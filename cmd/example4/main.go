@@ -34,8 +34,8 @@ import (
 	"log"
 	"strconv"
 
+	cvpapi "gopkg.in/aristanetworks/go-cvprac.v2/api"
 	"gopkg.in/aristanetworks/go-cvprac.v2/client"
-	cvpapi "gopkg.in/aristanetworks/go-cvprac/api"
 )
 
 func main() {

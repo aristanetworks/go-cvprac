@@ -35,8 +35,14 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
+)
+
+var (
+	defaultUser = "cvpadmin"
+	successMsg  = "success"
 )
 
 // UserList represents a list of users and the roles
@@ -101,11 +107,98 @@ func (c CvpRestAPI) GetUser(userID string) (*SingleUser, error) {
 	}
 
 	if err := info.Error(); err != nil {
-		// Entity does not exist
-		if info.ErrorCode == "132801" {
-			return nil, nil
-		}
-		return nil, errors.Errorf("GetUser: %s", err)
+		return nil, errors.Errorf("GetUser: %s", info.String())
 	}
 	return &info, nil
+}
+
+// AddUser adds 'user' and returns error if any
+func (c CvpRestAPI) AddUser(user *SingleUser) error {
+	if user == nil {
+		return errors.New("AddUser: can not add nil user")
+	}
+	resp, err := c.client.Post("/user/addUser.do", nil, user)
+	if err != nil {
+		return errors.Errorf("AddUser: %s", err)
+	}
+	var addedUser *SingleUser
+	if err = json.Unmarshal(resp, &addedUser); err != nil {
+		return errors.Errorf("AddUser: JSON unmarshal error: \n%v", err)
+	}
+	if err = addedUser.Error(); err != nil {
+		var retErr error
+		if addedUser.ErrorCode == USER_ALREADY_EXISTS ||
+			addedUser.ErrorCode == DATA_ALREADY_EXISTS {
+			retErr = errors.Errorf("AddUser: user '%s' already exists", addedUser.UserData.UserID)
+		} else {
+			retErr = errors.Errorf("AddUser: %s", addedUser.String())
+		}
+		return retErr
+	}
+	return nil
+}
+
+// DeleteUsers deletes specified users
+func (c CvpRestAPI) DeleteUsers(userIds []string) error {
+	if len(userIds) == 0 {
+		return errors.New("DeleteUsers: no user specified for deletion")
+	}
+	resp, err := c.client.Post("/user/deleteUsers.do", nil, userIds)
+	if err != nil {
+		return errors.Errorf("DeleteUsers: %s", err)
+	}
+	var msg struct {
+		ResponseMessage string `json:"data"`
+		ErrorResponse
+	}
+	if err = json.Unmarshal(resp, &msg); err != nil {
+		return errors.Errorf("DeleteUsers: JSON unmarshal error: \n%v", err)
+	}
+	var retErr error
+	if err = msg.Error(); err != nil {
+		switch msg.ErrorCode {
+		case SUPERUSER_DELETE_ATTEMPT:
+			retErr = errors.Errorf("DeleteUsers: cannot delete superuser '%s'", defaultUser)
+		case INVALID_USER:
+			retErr = errors.Errorf("DeleteUsers: one of the users in %v does not exist", userIds)
+		default:
+			retErr = errors.Errorf("DeleteUsers: Unexpected error: %v", err)
+		}
+	} else {
+		lowerCaseResp := strings.ToLower(msg.ResponseMessage)
+		if !strings.Contains(lowerCaseResp, successMsg) {
+			retErr = errors.New("DeleteUsers: Successful deletion response not found")
+		}
+	}
+	return retErr
+}
+
+// UpdateUser updates 'user' having userObj
+func (c CvpRestAPI) UpdateUser(user string, userObj *SingleUser) error {
+	param := &url.Values{"userId": {user}}
+	resp, err := c.client.Post("/user/updateUser.do", param, userObj)
+	if err != nil {
+		return errors.Errorf("UpdateUser: %v", err)
+	}
+	var msg struct {
+		ResponseMessage string `json:"data"`
+		ErrorResponse
+	}
+	if err = json.Unmarshal(resp, &msg); err != nil {
+		return errors.Errorf("UpdateUsers: JSON unmarshal error: \n%v", err)
+	}
+	var retErr error
+	if err = msg.Error(); err != nil {
+		if msg.ErrorCode == SUPERUSER_EDIT_ATTEMPT {
+			retErr = errors.Errorf("UpdateUsers: can not edit super user '%s'", defaultUser)
+		} else {
+			retErr = errors.Errorf("UpdateUsers: %v", err)
+		}
+	} else {
+		lowerCaseResp := strings.ToLower(msg.ResponseMessage)
+		if !strings.Contains(lowerCaseResp, successMsg) {
+			retErr = errors.New("UpdateUsers: Successful updation response not found")
+		}
+	}
+	return retErr
 }
