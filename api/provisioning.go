@@ -436,7 +436,7 @@ func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, com
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			Info:                            info,
 			InfoPreview:                     infoPreview,
 			Note:                            "",
@@ -552,7 +552,7 @@ func (c CvpRestAPI) ValidateAndApplyConfigletsToDevice(appName string, dev *NetE
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			ConfigCompareCount:              confCompCount,
 			Info:                            info,
 			InfoPreview:                     infoPreview,
@@ -639,7 +639,7 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			ID:                              1,
 			Info:                            info,
 			InfoPreview:                     infoPreview,
@@ -712,7 +712,7 @@ func (c CvpRestAPI) ApplyConfigletsToContainer(appName string, cont *Container,
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			Info:                            info,
 			InfoPreview:                     infoPreview,
 			Note:                            "",
@@ -803,7 +803,7 @@ func (c CvpRestAPI) RemoveConfigletsFromContainer(appName string, cont *Containe
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			ID:                              1,
 			Info:                            info,
 			InfoPreview:                     infoPreview,
@@ -885,7 +885,7 @@ func (c CvpRestAPI) containerOp(containerName, containerKey, parentName,
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			Info:        msg,
 			InfoPreview: msg,
 			Action:      operation,
@@ -935,7 +935,7 @@ func (c CvpRestAPI) ResetDevice(appName string, dev *NetElement,
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			ID:          1,
 			Action:      "reset",
 			FromID:      dev.ParentContainerKey,
@@ -1080,7 +1080,7 @@ func (c CvpRestAPI) MoveDeviceToContainer(appName string, device *NetElement,
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			Info:        info,
 			InfoPreview: infoPreview,
 			Action:      "update",
@@ -1304,7 +1304,7 @@ func (c CvpRestAPI) ApplyImageToDevice(appName string, imageInfo *ImageBundleInf
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			Info:        msg,
 			InfoPreview: msg,
 			Note:        "",
@@ -1343,7 +1343,7 @@ func (c CvpRestAPI) ApplyImageToContainer(appName string, imageInfo *ImageBundle
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			ID:          1,
 			Info:        msg,
 			InfoPreview: msg,
@@ -1384,7 +1384,7 @@ func (c CvpRestAPI) RemoveImageFromContainer(appName string, imageInfo *ImageBun
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			ID:             1,
 			Info:           msg,
 			InfoPreview:    msg,
@@ -1457,7 +1457,7 @@ func (c CvpRestAPI) DeployDeviceWithImage(appName string, dev *NetElement, devTa
 	data := struct {
 		Data []Action `json:"data,omitempty"`
 	}{Data: []Action{
-		Action{
+		{
 			Info:                            info,
 			InfoPreview:                     infoPreview,
 			Note:                            "",

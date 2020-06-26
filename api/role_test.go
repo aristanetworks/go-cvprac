@@ -604,7 +604,7 @@ func Test_GetRoleByName_UnitTest(t *testing.T) {
 					Key:            "network-operator",
 					ModuleListSize: 1,
 					ModuleList: []Module{
-						Module{Name: "image", Mode: "rw"},
+						{Name: "image", Mode: "rw"},
 					},
 				},
 			},

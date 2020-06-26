@@ -465,7 +465,7 @@ func (c CvpRestAPI) AddToInventory(deviceIPAddress, parentContainerName,
 		Data []map[string]interface{} `json:"data"`
 	}{
 		Data: []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"containerName": parentContainerName,
 				"containerId":   parentContainerID,
 				"containerType": "Existing",

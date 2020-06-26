@@ -276,7 +276,7 @@ func (c CvpRestAPI) DeleteConfiglet(name string, key string) error {
 	var info ErrorResponse
 
 	data := []map[string]string{
-		map[string]string{
+		{
 			"name": name,
 			"key":  key,
 		},
