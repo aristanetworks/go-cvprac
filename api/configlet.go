@@ -410,8 +410,6 @@ func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int,
 	end int) (*ConfigletList, error) {
 	var info ConfigletList
 
-	//queryparam := url.Values{"name": {key},}
-
 	query := &url.Values{
 		"queryparam": {searchStr},
 		"startIndex": {strconv.Itoa(start)},
@@ -437,4 +435,31 @@ func (c CvpRestAPI) SearchConfigletsWithRange(searchStr string, start int,
 // SearchConfiglets search function for configlets.
 func (c CvpRestAPI) SearchConfiglets(searchStr string) (*ConfigletList, error) {
 	return c.SearchConfigletsWithRange(searchStr, 0, 0)
+}
+
+// GetAppliedDevices Returns a list of devices to which the named configlet is applied
+func (c CvpRestAPI) GetAppliedDevices(configletName string, start int,
+	end int) ([]ObjectInfo, error) {
+	var info GenericReq
+
+	query := &url.Values{
+		"configletName": {configletName},
+		"startIndex":    {strconv.Itoa(start)},
+		"endIndex":      {strconv.Itoa(end)},
+	}
+
+	resp, err := c.client.Get("/configlet/getAppliedDevices.do", query)
+	if err != nil {
+		return nil, errors.Errorf("GetAppliedDevices: %s", err)
+	}
+
+	if err = json.Unmarshal(resp, &info); err != nil {
+		return nil, errors.Errorf("GetAppliedDevices: %s Payload:\n%s", err, resp)
+	}
+
+	if err := info.Error(); err != nil {
+		return nil, errors.Errorf("GetAppliedDevices: %s", err)
+	}
+
+	return info.Data, nil
 }
