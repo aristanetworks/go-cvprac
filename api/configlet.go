@@ -439,7 +439,7 @@ func (c CvpRestAPI) SearchConfiglets(searchStr string) (*ConfigletList, error) {
 
 // GetAppliedDevices Returns a list of devices to which the named configlet is applied
 func (c CvpRestAPI) GetAppliedDevices(configletName string) ([]ObjectInfo, error) {
-	return c.client.GetAppliedDevicesWithRange(configletName, 0, 0)
+	return c.GetAppliedDevicesWithRange(configletName, 0, 0)
 }
 
 // GetAppliedDevicesWithRange Returns a list of devices to which the named configlet is applied
