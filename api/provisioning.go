@@ -282,29 +282,6 @@ func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// Check data for ReconciledConfig
-	// This check is necessary because the ReconciledConfig is returned as an object when
-	// there is data but as an empty string when there is none
-	var newRecConf ReconciledConfig
-	json.Unmarshal(*objMap["reconciledConfig"], &newRecConf)
-	vcc.ReconciledConfig = newRecConf
-	// Check data for DesignedConfig
-	var newDesignedConfig []ConfigBlock
-	json.Unmarshal(*objMap["designedConfig"], &newDesignedConfig)
-	vcc.DesignedConfig = newDesignedConfig
-	// Check data for RunningConfig
-	var newRunningConfig []ConfigBlock
-	json.Unmarshal(*objMap["runningConfig"], &newRunningConfig)
-	vcc.RunningConfig = newRunningConfig
-	// Check data for Warnings
-	var newWarnings []string
-	json.Unmarshal(*objMap["warnings"], &newWarnings)
-	vcc.Warnings = newWarnings
-	// Check data for Total
-	var newTotal int
-	json.Unmarshal(*objMap["total"], &newTotal)
-	vcc.Total = newTotal
-
 	// Check data for Errors as list of strings. Return if found.
 	var newErrors []ValidateError
 	if err = json.Unmarshal(*objMap["errors"], &newErrors); err != nil {
@@ -320,14 +297,16 @@ func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if len(newErrors) > 0 {
-		//vcc.Errors = newErrors
-		vcc.Errors = append(newErrors, ValidateError{ConfigletLineNo: 1, ErrorMsg: "Test"})
+		vcc.Errors = newErrors
 		return nil
 	}
 
-	// We do these last since they don't seem to be included in the return if the
-	// device has an error.
-
+	// Check data for ReconciledConfig
+	// This check is necessary because the ReconciledConfig is returned as an object when
+	// there is data but as an empty string when there is none
+	var newRecConf ReconciledConfig
+	json.Unmarshal(*objMap["reconciledConfig"], &newRecConf)
+	vcc.ReconciledConfig = newRecConf
 	// Check data for Reconcile
 	var newReconcile int
 	json.Unmarshal(*objMap["reconcile"], &newReconcile)
@@ -340,10 +319,26 @@ func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
 	var newMismatch int
 	json.Unmarshal(*objMap["mismatch"], &newMismatch)
 	vcc.Mismatch = newMismatch
+	// Check data for Total
+	var newTotal int
+	json.Unmarshal(*objMap["total"], &newTotal)
+	vcc.Total = newTotal
 	// Check data for IsReconcileInvoked
 	var newInvoked bool
 	json.Unmarshal(*objMap["isReconcileInvoked"], &newInvoked)
 	vcc.IsReconcileInvoked = newInvoked
+	// Check data for DesignedConfig
+	var newDesignedConfig []ConfigBlock
+	json.Unmarshal(*objMap["designedConfig"], &newDesignedConfig)
+	vcc.DesignedConfig = newDesignedConfig
+	// Check data for RunningConfig
+	var newRunningConfig []ConfigBlock
+	json.Unmarshal(*objMap["runningConfig"], &newRunningConfig)
+	vcc.RunningConfig = newRunningConfig
+	// Check data for Warnings
+	var newWarnings []string
+	json.Unmarshal(*objMap["warnings"], &newWarnings)
+	vcc.Warnings = newWarnings
 	return nil
 }
 
