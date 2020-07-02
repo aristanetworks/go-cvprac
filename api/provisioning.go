@@ -35,6 +35,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -249,7 +250,18 @@ type ValidateAndCompareConfigletsResp struct {
 	IsReconcileInvoked bool             `json:"isReconcileInvoked"`
 	Mismatch           int              `json:"mismatch"`
 	Warnings           []string         `json:"warnings"`
-	Errors             []string         `json:"errors"`
+	Errors             []ValidateError  `json:"errors"`
+}
+
+// ValidateError is the entry for device config errors
+type ValidateError struct {
+	ConfigletLineNo int    `json:"configletLineNo"`
+	ErrorMsg        string `json:"error"`
+	ConfigletID     string `json:"configletId"`
+}
+
+func (v ValidateError) String() string {
+	return "\"Line:" + strconv.Itoa(v.ConfigletLineNo) + " Msg:" + v.ErrorMsg + "\""
 }
 
 // UnmarshalJSON ...
@@ -270,45 +282,12 @@ func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	// Check data for Errors as list of strings. Return if found.
-	var newErrors []string
-	if err = json.Unmarshal(*objMap["errors"], &newErrors); err != nil {
-		// Check for Errors as string
-		var newErrorsString string
-		err = json.Unmarshal(*objMap["errors"], &newErrorsString)
-		// If Errors found as non empty string save it as list of strings
-		if err == nil && newErrorsString != "" {
-			newErrors = []string{newErrorsString}
-		}
-	}
-	vcc.Errors = newErrors
-
 	// Check data for ReconciledConfig
 	// This check is necessary because the ReconciledConfig is returned as an object when
 	// there is data but as an empty string when there is none
 	var newRecConf ReconciledConfig
 	json.Unmarshal(*objMap["reconciledConfig"], &newRecConf)
 	vcc.ReconciledConfig = newRecConf
-	// Check data for Reconcile
-	var newReconcile int
-	json.Unmarshal(*objMap["reconcile"], &newReconcile)
-	vcc.Reconcile = newReconcile
-	// Check data for New
-	var newNew int
-	json.Unmarshal(*objMap["new"], &newNew)
-	vcc.New = newNew
-	// Check data for Mismatch
-	var newMismatch int
-	json.Unmarshal(*objMap["mismatch"], &newMismatch)
-	vcc.Mismatch = newMismatch
-	// Check data for Total
-	var newTotal int
-	json.Unmarshal(*objMap["total"], &newTotal)
-	vcc.Total = newTotal
-	// Check data for IsReconcileInvoked
-	var newInvoked bool
-	json.Unmarshal(*objMap["isReconcileInvoked"], &newInvoked)
-	vcc.IsReconcileInvoked = newInvoked
 	// Check data for DesignedConfig
 	var newDesignedConfig []ConfigBlock
 	json.Unmarshal(*objMap["designedConfig"], &newDesignedConfig)
@@ -321,6 +300,50 @@ func (vcc *ValidateAndCompareConfigletsResp) UnmarshalJSON(data []byte) error {
 	var newWarnings []string
 	json.Unmarshal(*objMap["warnings"], &newWarnings)
 	vcc.Warnings = newWarnings
+	// Check data for Total
+	var newTotal int
+	json.Unmarshal(*objMap["total"], &newTotal)
+	vcc.Total = newTotal
+
+	// Check data for Errors as list of strings. Return if found.
+	var newErrors []ValidateError
+	if err = json.Unmarshal(*objMap["errors"], &newErrors); err != nil {
+		// Check for Errors as string
+		// For some dumb reason if there is no error, then 'errors' is a string type.
+		// However, if there is an error, then errors is structured data like []ValidateError.
+		// So we will try to handle two different types of errors here.
+		var newErrorsString string
+		err = json.Unmarshal(*objMap["errors"], &newErrorsString)
+		// If Errors found as non empty string save it as list of strings
+		if err == nil && newErrorsString != "" {
+			newErrors = []ValidateError{{ErrorMsg: newErrorsString}}
+		}
+	}
+	if len(newErrors) > 0 {
+		//vcc.Errors = newErrors
+		vcc.Errors = append(newErrors, ValidateError{ConfigletLineNo: 1, ErrorMsg: "Test"})
+		return nil
+	}
+
+	// We do these last since they don't seem to be included in the return if the
+	// device has an error.
+
+	// Check data for Reconcile
+	var newReconcile int
+	json.Unmarshal(*objMap["reconcile"], &newReconcile)
+	vcc.Reconcile = newReconcile
+	// Check data for New
+	var newNew int
+	json.Unmarshal(*objMap["new"], &newNew)
+	vcc.New = newNew
+	// Check data for Mismatch
+	var newMismatch int
+	json.Unmarshal(*objMap["mismatch"], &newMismatch)
+	vcc.Mismatch = newMismatch
+	// Check data for IsReconcileInvoked
+	var newInvoked bool
+	json.Unmarshal(*objMap["isReconcileInvoked"], &newInvoked)
+	vcc.IsReconcileInvoked = newInvoked
 	return nil
 }
 
@@ -495,7 +518,7 @@ func (c CvpRestAPI) ValidateConfigletsForDevice(deviceMac string, configletKeys 
 		PageType:     "validateConfig",
 	}
 
-	reqResp, err := c.client.Post("/provisioning/validateAndCompareConfiglets.do", nil, data)
+	reqResp, err := c.client.Post("/provisioning/v2/validateAndCompareConfiglets.do", nil, data)
 	if err != nil {
 		return nil, errors.Errorf("ValidateConfigletsForDevice: %s", err)
 	}
@@ -504,8 +527,12 @@ func (c CvpRestAPI) ValidateConfigletsForDevice(deviceMac string, configletKeys 
 		return nil, errors.Errorf("ValidateConfigletsForDevice: %s Payload:\n%s", err, reqResp)
 	}
 
-	if err := resp.Errors; err != nil {
-		return nil, errors.Errorf("ValidateConfigletsForDevice: %s", err)
+	if len(resp.Errors) > 0 {
+		var errorList []string
+		for _, vErr := range resp.Errors {
+			errorList = append(errorList, vErr.String())
+		}
+		return nil, errors.Errorf("ValidateConfigletsForDevice: %s", strings.Join(errorList, ", "))
 	}
 	return &resp, nil
 }
