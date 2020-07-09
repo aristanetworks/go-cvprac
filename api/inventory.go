@@ -479,20 +479,41 @@ func (c CvpRestAPI) AddToInventory(deviceIPAddress, parentContainerName,
 	return errors.Wrapf(err, "AddToInventor:")
 }
 
-// DeleteDevice Remove device from the Cvp inventory
-func (c CvpRestAPI) DeleteDevice(deviceMac string) error {
-	err := c.DeleteDevices([]string{deviceMac})
-	return errors.Wrapf(err, "DeleteDevice:")
+// DeleteDeviceByMac Remove device from the Cvp inventory using Mac address
+func (c CvpRestAPI) DeleteDeviceByMac(deviceMac string) error {
+	err := c.DeleteDevicesByMac([]string{deviceMac})
+	return errors.Wrapf(err, "DeleteDeviceByMac:")
 }
 
-// DeleteDevices Remove devices from the Cvp inventory
-func (c CvpRestAPI) DeleteDevices(deviceMacs []string) error {
+// DeleteDevicesByMac Remove list of devices from the Cvp inventory using Mac
+// Addresses
+func (c CvpRestAPI) DeleteDevicesByMac(deviceMacs []string) error {
+	serialNums := make([]string, len(deviceMacs))
+	for idx, mac := range deviceMacs {
+		device, err := c.GetDeviceByID(mac)
+		if err != nil {
+			return errors.Wrap(err, "DeleteDevices")
+		}
+		serialNums[idx] = device.SerialNumber
+	}
+	err := c.DeleteDevicesBySerial(serialNums)
+	return errors.Wrapf(err, "DeleteDevices:")
+}
+
+// DeleteDeviceBySerial Remove device based on serial
+func (c CvpRestAPI) DeleteDeviceBySerial(serialNumber string) error {
+	err := c.DeleteDevicesBySerial([]string{serialNumber})
+	return errors.Wrapf(err, "DeleteDeviceBySerial:")
+}
+
+// DeleteDevicesBySerial Remove devices based on serial
+func (c CvpRestAPI) DeleteDevicesBySerial(serialNumbers []string) error {
 	data := struct {
 		Data []string `json:"data"`
 	}{
-		Data: deviceMacs,
+		Data: serialNumbers,
 	}
 
-	_, err := c.client.Post("/inventory/deleteDevices.do", nil, data)
-	return errors.Wrapf(err, "DeleteDevices:")
+	_, err := c.client.Delete("/inventory/devices", nil, data)
+	return errors.Wrapf(err, "DeleteDevicesBySerial:")
 }
