@@ -89,6 +89,8 @@ type CvpClient struct {
 	url       string
 	API       *cvpapi.CvpRestAPI
 	Debug     bool
+	IsCvaas   bool
+	Tenant    string
 }
 
 // Option is a Client Option...function that sets a value and returns
@@ -174,6 +176,15 @@ func Debug(enable bool) Option {
 	}
 }
 
+// Cvaas enables the cvaas support for this Client
+func Cvaas(enable bool, tenant string) Option {
+	return func(c *CvpClient) error {
+		c.IsCvaas = enable
+		c.Tenant = tenant
+		return nil
+	}
+}
+
 // SetOption takes one or more option function and applies them in order
 func (c *CvpClient) SetOption(options ...Option) error {
 	for _, opt := range options {
@@ -215,6 +226,11 @@ func (c *CvpClient) SetTransport(transport http.RoundTripper) error {
 // SetDebug enables or disables debugging.
 func (c *CvpClient) SetDebug(enable bool) error {
 	return c.SetOption(Debug(enable))
+}
+
+// SetCvaas adds support for cvaas.
+func (c *CvpClient) SetCvaas(enable bool, tenant string) error {
+	return c.SetOption(Cvaas(enable, tenant))
 }
 
 // NewCvpClient creates a new CVP RESTful Client
@@ -289,7 +305,10 @@ func (c *CvpClient) initSession(host string) error {
 		return errors.Errorf("initSession: No host provided")
 	}
 
-	c.url = fmt.Sprintf("%s://%s:%d/web", c.Protocol, host, c.GetPort())
+	c.url = fmt.Sprintf("%s://%s:%d", c.Protocol, host, c.GetPort())
+	if !c.IsCvaas {
+		c.url = c.url + "/web"
+	}
 
 	c.Client = resty.New()
 
@@ -320,6 +339,30 @@ func (c *CvpClient) resetSession() error {
 }
 
 func (c *CvpClient) login() error {
+	if c.IsCvaas {
+		return c.loginCvaas()
+	}
+	return c.loginOnPrem()
+}
+
+func (c *CvpClient) loginCvaas() error {
+	request := c.Client.R()
+	auth := `{"org":"` + c.Tenant + `", "name":"` + c.authInfo.Username +
+		`", "password":"` + c.authInfo.Password + `"}`
+	resp, err := request.SetBody(auth).Post("/api/v1/oauth?provider=local&next=false")
+	if err != nil {
+		return errors.Wrap(err, "login")
+	}
+
+	if err = checkResponseStatus(resp); err != nil {
+		return errors.Wrap(err, "login")
+	}
+
+	c.Client.SetCookies(resp.Cookies())
+	return nil
+}
+
+func (c *CvpClient) loginOnPrem() error {
 	var loginResp cvpapi.LoginResp
 
 	c.SessID = ""
@@ -477,17 +520,24 @@ func parseURLValues(params *url.Values) (map[string]string, error) {
 	return newMap, nil
 }
 
-func checkResponse(resp *resty.Response) error {
+func checkResponseStatus(resp *resty.Response) error {
 	// Underlying request issue. Could be getsockopt error (like network not reachable)
 	if resp.RawResponse == nil {
 		// retry another session
-		return errors.New("checkResponse: RawResponse error")
+		return errors.New("checkResponseStatus: RawResponse error")
 	}
 
 	status := resp.StatusCode()
-
 	if status != http.StatusOK {
-		return errors.Errorf("checkResponse Status: %s, StatusCode: %d", resp.Status(), status)
+		return errors.Errorf("checkResponseStatus: %s, StatusCode: %d", resp.Status(), status)
+	}
+
+	return nil
+}
+
+func checkResponse(resp *resty.Response) error {
+	if err := checkResponseStatus(resp); err != nil {
+		return errors.Wrap(err, "checkResponse")
 	}
 
 	var info cvpapi.ErrorResponse
