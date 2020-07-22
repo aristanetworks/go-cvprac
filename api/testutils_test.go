@@ -32,6 +32,7 @@
 package cvpapi
 
 import (
+	"os"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -44,8 +45,11 @@ import (
 var configPath = ""
 
 func init() {
-	_, filename, _, _ := runtime.Caller(1)
-	configPath = path.Join(path.Dir(filename), ".")
+	var err error
+	configPath, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Config Represents the config file.
