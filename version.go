@@ -33,4 +33,4 @@
 package cvprac
 
 // Version of library
-const Version string = "v3.0.0"
+const Version string = "v3.0.2"
