@@ -1,4 +1,4 @@
-module github.com/aristanetworks/go-cvprac.v1
+module github.com/aristanetworks/go-cvprac
 
 require (
 	github.com/pkg/errors v0.0.0-20171018195549-f15c970de5b7
@@ -7,3 +7,5 @@ require (
 	gopkg.in/resty.v1 v1.10.2
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
+
+go 1.13
