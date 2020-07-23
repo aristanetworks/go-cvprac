@@ -33,57 +33,45 @@ package main
 import (
 	"log"
 
-	"gopkg.in/aristanetworks/go-cvprac.v2/client"
+	"github.com/aristanetworks/go-cvprac/v3/client"
 )
 
 func main() {
-	hosts := []string{"10.81.110.85"}
+	hosts := []string{"10.16.129.98"}
 	cvpClient, _ := client.NewCvpClient(
 		client.Protocol("https"),
 		client.Port(443),
 		client.Hosts(hosts...),
-		client.Debug(false))
+		client.Debug(true))
 
 	if err := cvpClient.Connect("cvpadmin", "cvp123"); err != nil {
 		log.Fatalf("ERROR: %s", err)
 	}
 
-	mac := "44:4c:a8:a5:0d:a1"
+	mac := "04:47:cf:b3:2e:2b"
+	destContainer := "Leafs"
 
+	log.Printf("Getting device: %s", mac)
 	dev, err := cvpClient.API.GetDeviceByID(mac)
 	if err != nil {
 		log.Fatalf("Failed to Get Device: %s", err)
 	}
 
-	cont, err := cvpClient.API.GetParentContainerForDevice(mac)
-
-	cvpClient.API.DeleteDevice(mac)
-
-	tmp, err := cvpClient.API.GetDeviceByID(mac)
-	if tmp == nil {
-		log.Println("Not found...good")
-	}
-
-	log.Printf("%s %s %s\n", dev.IPAddress, cont.Name, cont.Key)
-	if err := cvpClient.API.AddToInventory(dev.IPAddress, cont.Name, cont.Key); err != nil {
-		log.Fatalf("Failed to Add to Inventory: %s", err)
-	}
-
-	if i, err := cvpClient.API.GetNonConnectedDeviceCount(); err != nil {
-		log.Fatalf("Failed to Get NonConnected device count: %s", err)
-	} else {
-		log.Printf("%d\n", i)
-	}
-
-	if _, err := cvpClient.API.SaveInventory(); err != nil {
-		log.Fatalf("Failed to Save: %s", err)
-	}
-
-	tmp, err = cvpClient.API.GetDeviceByID(mac)
+	log.Printf("Getting Container: %s", destContainer)
+	container, err := cvpClient.API.GetContainerByName(destContainer)
 	if err != nil {
-		log.Fatalf("Error: %s", err)
+		log.Fatalf("Failed to Get Container: %s", err)
 	}
-	if tmp == nil {
-		log.Fatal("Not found")
+
+	log.Printf("Getting Configlet: [Auto Execute TaskLEAF-1A_mgmt]")
+	configlet, err := cvpClient.API.GetConfigletByName("Auto Execute TaskLEAF-1A_mgmt")
+	if err != nil {
+		log.Fatalf("Failed to Get Configlet: %s", err)
 	}
+
+	taskInfo, err := cvpClient.API.DeployDevice("TEST", dev, "192.168.0.7", container, *configlet)
+	if err != nil {
+		log.Fatalf("Failed to Deploy device: %s", err)
+	}
+	log.Printf("TaskInfo: %v", taskInfo)
 }

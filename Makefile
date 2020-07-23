@@ -62,20 +62,19 @@ fmtcheck:
 	$(GOFILES) -exec ./check_line_len.awk {} +
 
 fmt:
-	$(GOFOLDERS) | xargs $(GO) fmt
+	$(GO) fmt
 
 vet:
-	$(GOFOLDERS) | xargs $(GO) vet
+	$(GO) vet
 
 test:
-	$(GOFOLDERS) | xargs $(GO) test $(GOTEST_FLAGS)
+	$(GO) test $(GOTEST_FLAGS)
 
 systest:
-	$(GOFOLDERS) | xargs $(GO) test $(GOTEST_FLAGS) -tags=systest -run SystemTest$
+	$(GO) test $(GOTEST_FLAGS) -tags=systest -run SystemTest ./...
 
 unittest:
-	$(GOFOLDERS) | xargs $(GO) test $(GOTEST_FLAGS) -run UnitTest$
-
+	$(GO) test $(GOTEST_FLAGS) -run UnitTest ./...
 
 doc:
 	godoc -http="localhost:6060" -play=true

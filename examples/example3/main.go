@@ -31,10 +31,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
-	"gopkg.in/aristanetworks/go-cvprac.v2/client"
+	"github.com/aristanetworks/go-cvprac/v3/client"
 )
 
 func main() {
@@ -49,17 +48,42 @@ func main() {
 		log.Fatalf("ERROR: %s", err)
 	}
 
-	// verify we have at least one device in inventory
-	data, err := cvpClient.API.GetCvpInfo()
-	if err != nil {
-		log.Fatalf("ERROR: %s", err)
-	}
-	fmt.Printf("Data: %v\n", data)
+	mac := "44:4c:a8:a5:0d:a1"
 
-	configletList, err := cvpClient.API.SearchConfiglets("ConfigletName")
+	dev, err := cvpClient.API.GetDeviceByID(mac)
 	if err != nil {
-		log.Fatalf("ERROR: %s", err)
+		log.Fatalf("Failed to Get Device: %s", err)
 	}
-	fmt.Printf("Configlets: %v\n", configletList)
 
+	cont, err := cvpClient.API.GetParentContainerForDevice(mac)
+
+	cvpClient.API.DeleteDeviceByMac(mac)
+
+	tmp, err := cvpClient.API.GetDeviceByID(mac)
+	if tmp == nil {
+		log.Println("Not found...good")
+	}
+
+	log.Printf("%s %s %s\n", dev.IPAddress, cont.Name, cont.Key)
+	if err := cvpClient.API.AddToInventory(dev.IPAddress, cont.Name, cont.Key); err != nil {
+		log.Fatalf("Failed to Add to Inventory: %s", err)
+	}
+
+	if i, err := cvpClient.API.GetNonConnectedDeviceCount(); err != nil {
+		log.Fatalf("Failed to Get NonConnected device count: %s", err)
+	} else {
+		log.Printf("%d\n", i)
+	}
+
+	if _, err := cvpClient.API.SaveInventory(); err != nil {
+		log.Fatalf("Failed to Save: %s", err)
+	}
+
+	tmp, err = cvpClient.API.GetDeviceByID(mac)
+	if err != nil {
+		log.Fatalf("Error: %s", err)
+	}
+	if tmp == nil {
+		log.Fatal("Not found")
+	}
 }

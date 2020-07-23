@@ -31,15 +31,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"strconv"
 
-	cvpapi "gopkg.in/aristanetworks/go-cvprac.v2/api"
-	"gopkg.in/aristanetworks/go-cvprac.v2/client"
+	"github.com/aristanetworks/go-cvprac/v3/client"
 )
 
 func main() {
-	hosts := []string{"10.16.129.98"}
+	hosts := []string{"10.81.110.85"}
 	cvpClient, _ := client.NewCvpClient(
 		client.Protocol("https"),
 		client.Port(443),
@@ -50,52 +49,17 @@ func main() {
 		log.Fatalf("ERROR: %s", err)
 	}
 
-	mac := "04:47:cf:b3:2e:2b"
-	destContainer := "Leafs-mnt1"
-
-	log.Printf("Getting device: %s", mac)
-	dev, err := cvpClient.API.GetDeviceByID(mac)
+	// verify we have at least one device in inventory
+	data, err := cvpClient.API.GetCvpInfo()
 	if err != nil {
-		log.Fatalf("Failed to Get Device: %s", err)
+		log.Fatalf("ERROR: %s", err)
 	}
+	fmt.Printf("Data: %v\n", data)
 
-	log.Printf("Getting Container: %s", destContainer)
-	container, err := cvpClient.API.GetContainerByName(destContainer)
+	configletList, err := cvpClient.API.SearchConfiglets("ConfigletName")
 	if err != nil {
-		log.Fatalf("Failed to Get Container: %s", err)
+		log.Fatalf("ERROR: %s", err)
 	}
-
-	log.Printf("Moving device [%s] to container [%s]", dev.Fqdn, container.Name)
-	taskInfo, err := cvpClient.API.MoveDeviceToContainer("TEST", dev, container, true)
-	if err != nil {
-		log.Fatalf("Failed to Move device: %s", err)
-	}
-	log.Printf("TaskInfo: %v", taskInfo)
-	log.Printf("Getting ConfigletBuilder TestBuilder")
-	builder, err := cvpClient.API.GetConfigletBuilderByName("TestBuilder")
-	if err != nil {
-		log.Fatalf("Failed to Get Builder: %s", err)
-	}
-
-	log.Printf("Generating Configlets for builder [%s]", builder.Name)
-	c, err := cvpClient.API.GenerateConfigletForContainer(container, builder,
-		[]cvpapi.NetElement{*dev})
-	if err != nil {
-		log.Fatalf("Failed to Generate Builder: %s", err)
-	}
-
-	for _, co := range c {
-		taskInfo, err := cvpClient.API.ApplyConfigletToDevice("TEST", dev, &co, true)
-		if err != nil {
-			log.Fatalf("Failed to Apply Configlet: %s", err)
-		}
-		log.Printf("TaskInfo: %v", taskInfo)
-		if taskInfo != nil {
-			taskID, _ := strconv.Atoi(taskInfo.TaskIDs[0])
-			if err := cvpClient.API.ExecuteTask(taskID); err != nil {
-				log.Fatalf("Failed to Exec: %s", err)
-			}
-		}
-	}
+	fmt.Printf("Configlets: %v\n", configletList)
 
 }
