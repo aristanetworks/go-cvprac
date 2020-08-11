@@ -1867,22 +1867,19 @@ func checkRemoveConfigMapping(applied []Configlet, rmConfiglets []Configlet) (bo
 
 	var actionReqd bool
 	var configletsToRemain []Configlet
+
 	for _, c := range applied  {
 		if _, found := rmKeys[c.Key]; ! found {
 			configletsToRemain = append(configletsToRemain, c)
 		}
-
-		actionReqd = true
 	}
 
 	configletKeys, configletNames, builderKeys, builderNames, err2 := splitToConfigletAndBuilder(configletsToRemain)
 	if err2 != nil {
-		return false, nil, nil, nil, nil, nil, nil,nil, nil, err2
+		return false, nil, nil, nil, nil, nil, nil, nil, nil, err2
 	}
 
-	if len(configletNames) == 0 && len(builderNames) == 0 {
-		actionReqd = true
-	}
+	actionReqd = len(builderNames) + len(configletNames) != len(applied)
 
 	return actionReqd, configletKeys, configletNames, builderKeys, builderNames, rmConfigletKeys,rmConfigletNames, rmBuilderKeys,rmBuilderNames, nil
 }
