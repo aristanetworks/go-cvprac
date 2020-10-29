@@ -35,6 +35,7 @@ CVP Version | go-cvprac Version
 ------------ | -------------
 2016.x-2017.x | v1
 2018.1.x, 2018.2.x, 2019.1.x | v2
+2020.1.x, 2020.2.x | v3
 
 ## Installation
 First, it is assumed you have a standard Go workspace, as described in http://golang.org/doc/code.html, with proper GOPATH set.
