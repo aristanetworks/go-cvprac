@@ -205,7 +205,8 @@ func (c CvpRestAPI) GenerateAutoConfiglet(devKeyList []string, builderKey string
 }
 
 // GenerateConfigletForDevice ...
-func (c CvpRestAPI) GenerateConfigletForDevice(dev *NetElement, builder *ConfigletBuilder) (*Configlet, error) {
+func (c CvpRestAPI) GenerateConfigletForDevice(dev *NetElement,
+	builder *ConfigletBuilder) (*Configlet, error) {
 	if dev == nil {
 		return nil, errors.Errorf("GenerateConfigletForDevice: dev nil")
 	}
