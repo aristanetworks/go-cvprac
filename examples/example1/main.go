@@ -38,14 +38,14 @@ import (
 )
 
 func main() {
-	hosts := []string{"10.20.30.185"}
+	hosts := []string{"10.81.110.85"}
 	cvpClient, _ := client.NewCvpClient(
 		client.Protocol("https"),
 		client.Port(443),
 		client.Hosts(hosts...),
 		client.Debug(false))
 
-	if err := cvpClient.Connect("ansible", "ansible"); err != nil {
+	if err := cvpClient.Connect("cvpadmin", "cvp123"); err != nil {
 		log.Fatalf("ERROR: %s", err)
 	}
 
