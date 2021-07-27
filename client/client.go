@@ -91,6 +91,7 @@ type CvpClient struct {
 	Debug     bool
 	IsCvaas   bool
 	Tenant    string
+	Token     string
 }
 
 // Option is a Client Option...function that sets a value and returns
@@ -278,6 +279,12 @@ func (c *CvpClient) Connect(username string, password string) error {
 	return c.createSession(true)
 }
 
+// Connect to CVP with a token. Takes the cvpToken parameter as an input for the string. 
+func (c *CvpClient) ConnectWithToken(cvpToken string) error {
+	c.Token = cvpToken
+	return c.createSession(true)
+}
+
 func (c *CvpClient) createSession(allNodes bool) error {
 	var errorMsg []string
 
@@ -319,6 +326,11 @@ func (c *CvpClient) initSession(host string) error {
 	if c.Protocol == "https" {
 		c.Client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	}
+	// If there is a token with the TokenField then set token within the rest library.
+	if c.Token != "" {
+		c.Client.SetAuthToken(c.Token)
+	}
+
 	c.Client.SetHostURL(c.url)
 	c.Client.SetHeaders(headers)
 	c.Client.SetTimeout(c.Timeout)
@@ -342,7 +354,14 @@ func (c *CvpClient) login() error {
 	if c.IsCvaas {
 		return c.loginCvaas()
 	}
-	return c.loginOnPrem()
+	if c.Token != "" { // If a token exists do not use one of the logincvaas or loginonprem and do not create a cookie the auth header is used with the token.
+		return nil
+	}
+	if c.authInfo.Username != "" {
+		return c.loginOnPrem()
+	} else {
+		return nil
+	}
 }
 
 func (c *CvpClient) loginCvaas() error {

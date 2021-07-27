@@ -38,28 +38,24 @@ import (
 )
 
 func main() {
-	hosts := []string{"10.81.110.85"}
+	TokenCvp := "cvp token goes here"
+	hosts := []string{"10.20.30.186"}
 	cvpClient, _ := client.NewCvpClient(
 		client.Protocol("https"),
 		client.Port(443),
 		client.Hosts(hosts...),
 		client.Debug(false))
 
-	if err := cvpClient.Connect("cvpadmin", "cvp123"); err != nil {
+	if err := cvpClient.ConnectWithToken(TokenCvp); err != nil {
 		log.Fatalf("ERROR: %s", err)
 	}
 
-	// verify we have at least one device in inventory
+	// Find out the cvp info
 	data, err := cvpClient.API.GetCvpInfo()
 	if err != nil {
 		log.Fatalf("ERROR: %s", err)
 	}
 	fmt.Printf("Data: %v\n", data)
-
-	configletList, err := cvpClient.API.SearchConfiglets("ConfigletName")
-	if err != nil {
-		log.Fatalf("ERROR: %s", err)
-	}
-	fmt.Printf("Configlets: %v\n", configletList)
-
+	// Should return the following when using 2021.2.0 for example.
+	// Data: version:2021.2.0, appVersion:
 }

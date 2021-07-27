@@ -60,6 +60,8 @@ Basic usage:
 
 The included client can be used to connect/interact with CVP:
 
+If using a standard username and password with CVP as in examples/example1/main.go use the following.
+
 ```golang
 package main
 
@@ -91,6 +93,43 @@ func main() {
 	fmt.Printf("Data: %v\n", data)
 }
 ```
+
+If using a [Service Token]("https://www.arista.com/en/cg-cv/cv-service-accounts") provided from CVP please using the following from examples/example6/main.go to pass in the bearer token within the Authorization field.
+
+```golang
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/aristanetworks/go-cvprac/v3/client"
+)
+
+func main() {
+	TokenCvp := "cvp token goes here"
+	hosts := []string{"10.20.30.186"}
+	cvpClient, _ := client.NewCvpClient(
+		client.Protocol("https"),
+		client.Port(443),
+		client.Hosts(hosts...),
+		client.Debug(false))
+
+	if err := cvpClient.ConnectWithToken(TokenCvp); err != nil {
+		log.Fatalf("ERROR: %s", err)
+	}
+
+	// Find out the cvp info
+	data, err := cvpClient.API.GetCvpInfo()
+	if err != nil {
+		log.Fatalf("ERROR: %s", err)
+	}
+	fmt.Printf("Data: %v\n", data)
+	// Should return the following when using 2021.2.0 for example.
+	// Data: version:2021.2.0, appVersion:
+}
+```
+
 
 If you want to use your own client (to leverage some custom behavior), you merely need to implement the provided ClientInterface:
 
