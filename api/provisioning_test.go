@@ -255,3 +255,81 @@ func Test_checkRemoveConfigMapping(t *testing.T) {
 		})
 	}
 }
+
+func Test_changesNeeded(t *testing.T) {
+	type args struct {
+		applied    []Configlet
+		configlets []Configlet
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *configletAndBuilderKeyNames
+		want1   *configletAndBuilderKeyNames
+		wantErr bool
+	}{
+		{
+			"",
+			args{
+				applied: []Configlet{
+					{
+						Reconciled: false,
+						Name:       "foo",
+						Key:        "foo",
+						Type:       "Static",
+					},
+					{
+						Reconciled: false,
+						Name:       "foo2",
+						Key:        "foo2",
+						Type:       "Static",
+					},
+					{
+						Reconciled: true,
+						Name:       "foo3",
+						Key:        "foo3",
+						Type:       "Reconciled",
+					},
+				},
+				configlets: []Configlet{
+					{
+						Reconciled: false,
+						Name:       "foo2",
+						Key:        "foo2",
+						Type:       "Static",
+					},
+				},
+			},
+			&configletAndBuilderKeyNames{
+				keys:   []string{"foo2"},
+				names:  []string{"foo2"},
+				bKeys:  nil,
+				bNames: nil,
+			},
+			&configletAndBuilderKeyNames{
+				keys:   []string{"foo", "foo3"},
+				names:  []string{"foo", "foo3"},
+				bKeys:  nil,
+				bNames: nil,
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1, err := changesNeeded(tt.args.applied, tt.args.configlets)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("changesNeeded() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("changesNeeded() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("changesNeeded() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
+}

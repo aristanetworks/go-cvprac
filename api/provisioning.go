@@ -436,6 +436,104 @@ type configletAndBuilderKeyNames struct {
 	bNames []string
 }
 
+func (c *configletAndBuilderKeyNames) Equals(other *configletAndBuilderKeyNames) bool {
+	if len(c.keys) != len(other.keys) || len(c.bKeys) != len(other.bKeys) {
+		return false
+	}
+
+	for i, v := range c.keys {
+		if v != other.keys[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func changesNeeded(applied, configlets []Configlet) (
+	*configletAndBuilderKeyNames, *configletAndBuilderKeyNames, error,
+) {
+	// configlets to set
+	configletAndBuilders, err := splitToConfigletAndBuilder(configlets)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	rmConfiglets := configletDifference(applied, configlets)
+
+	rmConfigletAndBuilders, err := splitToConfigletAndBuilder(rmConfiglets)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &configletAndBuilders, &rmConfigletAndBuilders, nil
+}
+
+// SetConfigletsToDevice Sets the configlets to the device,
+// and removes configlets from the device not referenced in `configlets`.
+func (c CvpRestAPI) SetConfigletsToDevice(appName string, dev *NetElement, commit bool,
+	configlets ...Configlet) (*TaskInfo, error) {
+	if dev == nil {
+		return nil, errors.Errorf("SetConfigletsToDevice: nil NetElement")
+	}
+
+	// configlets to be removed; applied minus not in configlets
+	currentConfiglets, err := c.GetConfigletsByDeviceID(dev.SystemMacAddress)
+	if err != nil {
+		return nil, errors.Errorf("ApplyConfigletsToDevice: %s", err)
+	}
+
+	newCAndB, rmCAndB, err := changesNeeded(currentConfiglets, configlets)
+	if err != nil {
+		return nil, err
+	}
+
+	info := appName + ": Configlet Assign: to Device " + dev.Fqdn
+	infoPreview := "<b>Configlet Assign:</b> to Device" + dev.Fqdn
+
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
+		{
+			ID:                              1,
+			Info:                            info,
+			InfoPreview:                     infoPreview,
+			Note:                            "",
+			Action:                          "associate",
+			NodeType:                        "configlet",
+			NodeID:                          "",
+			ConfigletBuilderList:            newCAndB.bKeys,
+			ConfigletBuilderNamesList:       newCAndB.bNames,
+			ConfigletList:                   newCAndB.keys,
+			ConfigletNamesList:              newCAndB.names,
+			IgnoreConfigletBuilderNamesList: rmCAndB.bNames,
+			IgnoreConfigletBuilderList:      rmCAndB.bKeys,
+			IgnoreConfigletNamesList:        rmCAndB.names,
+			IgnoreConfigletList:             rmCAndB.keys,
+			ToID:                            dev.SystemMacAddress,
+			ToIDType:                        "netelement",
+			FromID:                          "",
+			NodeIPAddress:                   dev.IPAddress,
+			NodeName:                        "",
+			NodeTargetIPAddress:             dev.IPAddress,
+			FromName:                        "",
+			ToName:                          dev.Fqdn,
+			ChildTasks:                      []string{},
+			ParentTask:                      "",
+		},
+	}}
+
+	if err := c.addTempAction(data); err != nil {
+		return nil, errors.Errorf("SetConfigletsToDevice: %s", err)
+	}
+
+	if commit {
+		return c.SaveTopology()
+	}
+
+	return nil, nil
+}
+
 // ApplyConfigletsToDevice apply the configlets to the device.
 func (c CvpRestAPI) ApplyConfigletsToDevice(appName string, dev *NetElement, commit bool,
 	newConfiglets ...Configlet) (*TaskInfo, error) {
@@ -642,7 +740,6 @@ func (c CvpRestAPI) RemoveConfigletsFromDevice(appName string, dev *NetElement, 
 	if !action {
 		return nil, nil
 	}
-
 
 	info := appName + ": Configlet Remove: from Device " + dev.Fqdn
 	infoPreview := "<b>Configlet Remove:</b> from Device" + dev.Fqdn
@@ -1753,12 +1850,12 @@ func (c CvpRestAPI) FilterTopology(nodeID, query string) (*Topology, error) {
 // elements not in c1, but are in c2 are appended to c1 and returned
 func configletUnion(c1, c2 []Configlet) []Configlet {
 	configletMap := make(map[string]string)
-	for _, configlet  := range c1 {
+	for _, configlet := range c1 {
 		configletMap[configlet.Key] = configlet.Name
 	}
 
 	for _, c := range c2 {
-		if _, found := configletMap[c.Key]; ! found {
+		if _, found := configletMap[c.Key]; !found {
 			c1 = append(c1, c)
 		}
 	}
@@ -1776,8 +1873,8 @@ func configletDifference(c1, c2 []Configlet) []Configlet {
 
 	var configletsToRemain []Configlet
 
-	for _, c := range c1  {
-		if _, found := rmKeys[c.Key]; ! found {
+	for _, c := range c1 {
+		if _, found := rmKeys[c.Key]; !found {
 			configletsToRemain = append(configletsToRemain, c)
 		}
 	}
@@ -1790,7 +1887,7 @@ func configletDifference(c1, c2 []Configlet) []Configlet {
 // and builderMap.
 func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 	configletAndBuilderKeyNames, error,
-	) {
+) {
 	configlets := configletUnion(applied, newconfiglets)
 
 	configletAndBuilders, err := splitToConfigletAndBuilder(configlets)
@@ -1803,13 +1900,12 @@ func checkConfigMapping(applied []Configlet, newconfiglets []Configlet) (bool,
 	return actionReqd, configletAndBuilders, nil
 }
 
-
 func splitToConfigletAndBuilder(configlets []Configlet) (configletAndBuilderKeyNames, error) {
 	var (
-		configletNames []string
-		configletKeys []string
-		builderNames []string
-		builderKeys []string
+		configletNames     []string
+		configletKeys      []string
+		builderNames       []string
+		builderKeys        []string
 		reconcileConfiglet *Configlet
 	)
 
@@ -1851,12 +1947,11 @@ func splitToConfigletAndBuilder(configlets []Configlet) (configletAndBuilderKeyN
 	}, nil
 }
 
-
 // checkRemoveConfigMapping Creates map of configlets that needs to be there after removal of
 // specific configlets
 func checkRemoveConfigMapping(applied []Configlet, rmConfiglets []Configlet) (bool,
 	configletAndBuilderKeyNames, configletAndBuilderKeyNames, error,
-	) {
+) {
 	configletsToRemain := configletDifference(applied, rmConfiglets)
 
 	rmConfigletAndBuilders, err := splitToConfigletAndBuilder(rmConfiglets)
