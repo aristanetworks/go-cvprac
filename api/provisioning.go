@@ -707,6 +707,68 @@ func (c CvpRestAPI) RemoveConfigletFromDevice(appName string, dev *NetElement,
 	return c.RemoveConfigletsFromDevice(appName, dev, commit, remConfigletList...)
 }
 
+// SetConfigletsToContainer Sets the configlets to the container,
+// and removes configlets from the container not referenced in `configlets`.
+func (c CvpRestAPI) SetConfigletsToContainer(appName string, cont *Container, commit bool,
+	configlets ...Configlet) (*TaskInfo, error) {
+	if cont == nil {
+		return nil, errors.Errorf("SetConfigletsToContainer: nil Container")
+	}
+
+	// configlets to be removed; applied minus not in configlets
+	currentConfiglets, err := c.GetContainerConfiglets(cont.Key)
+	if err != nil {
+		return nil, errors.Errorf("SetConfigletsToContainer: %s", err)
+	}
+
+	newCAndB, rmCAndB, err := changesNeeded(currentConfiglets, configlets)
+	if err != nil {
+		return nil, err
+	}
+
+	info := appName + ": Configlet Assign: to Container " + cont.Name
+	infoPreview := "<b>Configlet Assign:</b> to Container" + cont.Name
+
+	data := struct {
+		Data []Action `json:"data,omitempty"`
+	}{Data: []Action{
+		{
+			ID:                              1,
+			Info:                            info,
+			InfoPreview:                     infoPreview,
+			Note:                            "",
+			Action:                          "associate",
+			NodeType:                        "configlet",
+			NodeID:                          "",
+			ConfigletBuilderList:            newCAndB.bKeys,
+			ConfigletBuilderNamesList:       newCAndB.bNames,
+			ConfigletList:                   newCAndB.keys,
+			ConfigletNamesList:              newCAndB.names,
+			IgnoreConfigletBuilderNamesList: rmCAndB.bNames,
+			IgnoreConfigletBuilderList:      rmCAndB.bKeys,
+			IgnoreConfigletNamesList:        rmCAndB.names,
+			IgnoreConfigletList:             rmCAndB.keys,
+			ToID:                            cont.Key,
+			ToIDType:                        "container",
+			FromID:                          "",
+			FromName:                        "",
+			ToName:                          cont.Name,
+			ChildTasks:                      []string{},
+			ParentTask:                      "",
+		},
+	}}
+
+	if err := c.addTempAction(data); err != nil {
+		return nil, errors.Errorf("SetConfigletsToDevice: %s", err)
+	}
+
+	if commit {
+		return c.SaveTopology()
+	}
+
+	return nil, nil
+}
+
 // ApplyConfigletsToContainer apply the configlets to the container.
 func (c CvpRestAPI) ApplyConfigletsToContainer(appName string, cont *Container,
 	newConfiglets ...Configlet) (*TaskInfo, error) {
