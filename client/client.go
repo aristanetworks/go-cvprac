@@ -351,11 +351,11 @@ func (c *CvpClient) resetSession() error {
 }
 
 func (c *CvpClient) login() error {
-	if c.IsCvaas {
-		return c.loginCvaas()
-	}
 	if c.Token != "" { // If a token exists do not use one of the logincvaas or loginonprem and do not create a cookie the auth header is used with the token.
 		return nil
+	}
+	if c.IsCvaas {
+		return c.loginCvaas()
 	}
 	if c.authInfo.Username != "" {
 		return c.loginOnPrem()
