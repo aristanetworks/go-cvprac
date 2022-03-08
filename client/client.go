@@ -315,8 +315,6 @@ func (c *CvpClient) initSession(host string) error {
 	c.url = fmt.Sprintf("%s://%s:%d", c.Protocol, host, c.GetPort())
 	if !c.IsCvaas {
 		c.url = c.url + "/web"
-	} else {
-		c.url = c.url + "/cvpservice"
 	}
 
 	c.Client = resty.New()
