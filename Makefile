@@ -8,7 +8,6 @@
 #       make fmtcheck -- formate check
 #       make vet -- go vet
 #       make lint -- go lint
-#       make deadcode -- deadcode checker
 #       make test -- run tests
 #       make clean -- clean
 #
@@ -23,11 +22,12 @@ GOLDFLAGS := -ldflags="-s -w"
 
 DEFAULT_GOPATH := $${GOPATH%%:*}
 GO := go
-GOFMT := goimports
-GOLINT := golint
-GO_DEADCODE := deadcode
+GOFMT := gofmt
+LINT := golangci-lint run
+LINTFLAGS ?= --deadline=10m --exclude-use-default=false --print-issued-lines --print-linter-name --out-format=colored-line-number --disable-all --max-same-issues=0 --max-issues-per-linter=0
+LINTCONFIG := --config golangci.yml
 GOFILES := find . -name '*.go' ! -path './Godeps/*' ! -path './vendor/*'
-GOFOLDERS := $(GO) list ./... | sed 's:^github.com/aristanetworks/go-cvprac:.:' | grep -vw -e './vendor'
+GOFOLDERS := $(GO) list ./... | sed 's:^github.com/aristanetworks/go-cvprac/v3:.:' | grep -vw -e './vendor'
 
 VERSION_FILE = version.go
 GOPKGVERSION := $(shell git describe --tags --always --match "v[0-9]*" --abbrev=7 HEAD)
@@ -37,35 +37,29 @@ endif
 
 # External Tools
 EXTERNAL_TOOLS=\
-   github.com/golang/lint/golint \
-   github.com/remyoudompheng/go-misc/deadcode \
    golang.org/x/tools/cmd/godoc \
    golang.org/x/tools/cmd/goimports
 
-check: fmtcheck vet lint deadcode unittest
-
-deadcode:
-	@if ! which $(GO_DEADCODE) >/dev/null; then echo Please install $(GO_DEADCODE); exit 1; fi
-	$(GOFOLDERS) | xargs $(GO_DEADCODE)
+check: fmtcheck vet lint unittest
 
 lint:
-	lint=`$(GOFOLDERS) | xargs -L 1 $(GOLINT)`; if test -n "$$lint"; then echo "$$lint"; exit 1; fi
-# The above is ugly, but unfortunately golint doesn't exit 1 when it finds
-# lint.  See https://github.com/golang/lint/issues/65
+	$(GOFOLDERS) | xargs $(LINT) $(LINTFLAGS) --disable-all --enable=deadcode --tests=false
+	$(GOFOLDERS) | xargs $(LINT) $(LINTCONFIG) $(LINTFLAGS)
 
 fmtcheck:
 	@if ! which $(GOFMT) >/dev/null; then echo Please install $(GOFMT); exit 1; fi
-	goimports=`$(GOFILES) | xargs $(GOFMT) -l 2>&1`; \
-	if test -n "$$goimports"; then echo Check the following files for coding style AND USE goimports; echo "$$goimports"; \
-        if test "$(shell $(GO) version | awk '{ print $$3 }')" != "devel"; then exit 1; fi; \
-    fi
-	$(GOFILES) -exec ./check_line_len.awk {} +
+	goimports=`$(GOFILES) | xargs $(GOFMT) -d 2>&1`; \
+	if test -n "$$goimports"; then \
+		echo Check the following files for coding style AND USE goimports; \
+		echo "$$goimports"; \
+		exit 1; \
+	fi
 
 fmt:
-	$(GO) fmt
+	 $(GOFOLDERS) | xargs $(GO) fmt
 
 vet:
-	$(GO) vet
+	 $(GOFOLDERS) | xargs $(GO) vet
 
 test:
 	$(GO) test $(GOTEST_FLAGS)
@@ -110,5 +104,5 @@ clean:
 	rm -rf $(COVER_TMPFILE).tmp $(COVER_TMPFILE) $(VERSION_FILE){,-t}
 	$(GO) clean ./...
 
-.PHONY: all fmtcheck test vet check doc lint deadcode
+.PHONY: all fmtcheck test vet check doc lint
 .PHONY: clean coverage coverdata version
