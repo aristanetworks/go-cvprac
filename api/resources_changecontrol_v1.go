@@ -34,7 +34,6 @@ package cvpapi
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"time"
 
@@ -42,89 +41,91 @@ import (
 )
 
 type ResultRsc struct {
-	Result ValueRsc
+	Result ValueRsc `json:"result"`
 }
 
 type ValueRsc struct {
-	Value json.RawMessage
-	Time  time.Time
-	Type  string
+	Value json.RawMessage `json:"value"`
+	Time  time.Time       `json:"time"`
+	Type  string          `json:"type"`
 }
 
 type ChangeControlKeyRsc struct {
-	Id string
+	Id string `json:"id"`
 }
 
 type StringMap struct {
-	Values map[string]string
+	Values map[string]string `json:"values"`
 }
 
 type StringList struct {
-	Values []string
+	Values []string `json:"values"`
 }
 
 type ActionRsc struct {
-	Name    string
-	Timeout uint32
-	Args    StringMap
+	Name    string    `json:"name"`
+	Timeout uint32    `json:"timeout"`
+	Args    StringMap `json:"args"`
 }
 
 type StageRsc struct {
-	Name   string
-	Action *ActionRsc
+	Name   string     `json:"name"`
+	Action *ActionRsc `json:"action"`
 	Rows   struct {
-		Values []StringList
-	}
-	Status *string
-	Error  *string
+		Values []StringList `json:"values"`
+	} `json:"rows"`
+	Status *string `json:"status"`
+	Error  *string `json:"error"`
 }
 
 type ChangeRsc struct {
-	Name        string
-	RootStageId string
+	Name        string `json:"name"`
+	RootStageId string `json:"rootStageId"`
 	Stages      struct {
-		Values map[string]StageRsc
-	}
-	Notes string
-	User  string
-	Time  time.Time
+		Values map[string]StageRsc `json:"values"`
+	} `json:"stages"`
+	Notes string    `json:"notes"`
+	User  string    `json:"user"`
+	Time  time.Time `json:"time"`
 }
 
 type FlagRsc struct {
-	Value bool
-	Notes string
-	Time  time.Time
-	User  string
+	Value bool      `json:"value"`
+	Notes string    `json:"notes"`
+	Time  time.Time `json:"time"`
+	User  string    `json:"user"`
 }
 
 type FlagConfigRsc struct {
-	Value bool
-	Notes string
+	Value bool   `json:"value"`
+	Notes string `json:"notes"`
 }
 
 type TimestampFlagRsc struct {
-	Value time.Time
-	Notes string
-	Time  time.Time
-	User  string
+	Value *time.Time `json:"value,omitempty"`
+	Notes string     `json:"notes"`
+	Time  *time.Time `json:"time,omitempty"`
+	User  *string    `json:"user,omitempty"`
 }
 
 type TimestampFlagConfigRsc struct {
-	Value bool
-	Notes string
+	Value bool   `json:"value"`
+	Notes string `json:"notes"`
 }
 
 type ChangeControlRsc struct {
-	Key      ChangeControlKeyRsc
-	Change   ChangeRsc
-	Flag     *FlagRsc
-	Start    *FlagRsc
-	Status   *string
-	Schedule *TimestampFlagRsc
+	Key      ChangeControlKeyRsc `json:"key"`
+	Change   *ChangeRsc          `json:"change,omitempty"`
+	Flag     *FlagRsc            `json:"flag,omitempty"`
+	Start    *FlagRsc            `json:"start,omitempty"`
+	Status   *string             `json:"status,omitempty"`
+	Schedule *TimestampFlagRsc   `json:"schedule,omitempty"`
 
-	Error *string
+	Error *string `json:"error,omitempty"`
 }
 
+// Resource APIs hand us back ndJson on /all endpoints.
+// This converts a call into a list of usable Json objects.
 func resultList(data []byte) ([]ResultRsc, error) {
 	out := []ResultRsc{}
 
@@ -144,7 +145,9 @@ func resultList(data []byte) ([]ResultRsc, error) {
 }
 
 // GetChangeControlsRsc returns a list of `ChangeControlRsc`s via the
-// ChangeControl resource API availablre on CVP 2021.2.0 or newer.
+// ChangeControl resource API available.
+//
+// This endpoint is available on CVP 2021.2.0 or newer.
 func (c CvpRestAPI) GetChangeControlsRsc() ([]ChangeControlRsc, error) {
 	ccs := []ChangeControlRsc{}
 	resp, err := c.client.Get("/api/resources/changecontrol/v1/ChangeControl/all", nil)
@@ -173,6 +176,10 @@ func (c CvpRestAPI) GetChangeControlsRsc() ([]ChangeControlRsc, error) {
 	return ccs, nil
 }
 
+// GetChangeControsRsc returns a single of `ChangeControlRsc` matching the given
+// `key` via the ChangeControl resource API available.
+//
+// This endpoint is available on CVP 2021.2.0 or newer.
 func (c CvpRestAPI) GetChangeControlRsc(key string) (ChangeControlRsc, error) {
 	result := ValueRsc{}
 	cc := ChangeControlRsc{}
@@ -201,26 +208,52 @@ func (c CvpRestAPI) GetChangeControlRsc(key string) (ChangeControlRsc, error) {
 	return cc, nil
 }
 
+// ScheduleChangeControlRsc schedules the Change Control given by `key` to occur
+// at `sched_time`, with optional `notes`.
+//
+// This endpoint is available on CVP 2022.1.0 or newer.
 func (c CvpRestAPI) ScheduleChangeControlRsc(key string, sched_time time.Time, notes string) error {
-	data := map[string]interface{}{
-		"key":      map[string]interface{}{"id": key},
-		"schedule": map[string]interface{}{"value": sched_time, "notes": notes},
-		// "time":     time.Now(),
-	}
+	cfg := ChangeControlRsc{}
+	cfg.Key.Id = key
 
-	js, err := json.Marshal(data)
+	// Note: The API seems to disallow setting the user or time on cvprac v2022.1.0 -- not tested others.
+	sched := TimestampFlagRsc{}
+	sched.Value = &sched_time
+	sched.Notes = notes
 
-	// if err != nil {
-	// 	err = errors.Errorf("ScheduleChangeControlRsc: %s", err)
-	// }
+	cfg.Schedule = &sched
 
-	resp, err := c.client.Post("/api/resources/changecontrol/v1/ChangeControlConfig", nil, data)
+	_, err := c.client.Post("/api/resources/changecontrol/v1/ChangeControlConfig", nil, cfg)
 
 	if err != nil {
 		err = errors.Errorf("ScheduleChangeControlRsc: %s", err)
 	}
 
-	fmt.Printf("Sched: got back %v from %v\n", string(resp), string(js))
+	// FIXME: check error handling of the top-level struct received.
+	// Scheduling unapproved jobs seems to have no issue, scheduling unapproved
+	// causes the change control to become unapproved again, counter to what docs say...
+
+	return err
+}
+
+// DescheduleChangeControlRsc removes any schedule data from a Change Control given by `key`.
+//
+// This endpoint is available on CVP 2022.1.0 or newer.
+func (c CvpRestAPI) DescheduleChangeControlRsc(key string, notes string) error {
+	cfg := ChangeControlRsc{}
+	cfg.Key.Id = key
+
+	// Note: The API seems to disallow setting the user or time on cvprac v2022.1.0 -- not tested others.
+	sched := TimestampFlagRsc{}
+	sched.Notes = notes
+
+	cfg.Schedule = &sched
+
+	_, err := c.client.Post("/api/resources/changecontrol/v1/ChangeControlConfig", nil, cfg)
+
+	if err != nil {
+		err = errors.Errorf("DescheduleChangeControlRsc: %s", err)
+	}
 
 	return err
 }

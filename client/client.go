@@ -468,9 +468,7 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		// Clear our errors
 		err = nil
 
-		fmt.Printf("Req to URL: %v %v\n", c.url, url)
-
-		// Temporarily strip and readd web/ prefix as needed
+		// Temporarily strip and readd "web/" prefix as needed
 		if stripWeb {
 			c.Client.SetHostURL(strings.TrimSuffix(c.url, "/web"))
 		}
