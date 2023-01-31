@@ -420,6 +420,8 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 			c.urlPrefixShort)
 	}
 
+	// Resource queries on CVP >v3 (on-prem) need to route through "<host>/api/...",
+	// but existing library endpoints do not.
 	var fullURL string
 	if strings.Contains(url, "/api/") || strings.Contains(url, "/cvpservice/") {
 		fullURL = c.urlPrefixShort + url
@@ -430,10 +432,6 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		fullURL = c.urlPrefixShort + "/web" + url
 	}
 
-	// Resource queries on CVP >v3 (non-CVaaS) need to route through "<host>/api/...",
-	// but existing library endpoints do not. This is simpler in the short term than adding
-	// /web to the front of all older endpoints.
-	stripWeb := strings.HasPrefix(url, "/api") && !c.IsCvaas
 	retryCnt := NumRetryRequests
 
 	if params != nil {
@@ -468,10 +466,6 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		// Clear our errors
 		err = nil
 
-		// Temporarily strip and readd "web/" prefix as needed
-		if stripWeb {
-			c.Client.SetHostURL(strings.TrimSuffix(c.url, "/web"))
-		}
 		// Check reqType
 		switch reqType {
 		case "GET":
@@ -482,9 +476,6 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 			resp, err = request.SetBody(data).Delete(fullURL)
 		default:
 			return nil, errors.Errorf("Invalid. Request type [%s] not implemented", reqType)
-		}
-		if stripWeb {
-			c.Client.SetHostURL(c.url)
 		}
 
 		if err != nil {
