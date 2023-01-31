@@ -34,14 +34,16 @@ package cvpapi
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"time"
 
 	"github.com/pkg/errors"
 )
 
-type ResultRsc struct {
-	Result ValueRsc `json:"result"`
+type resultRsc struct {
+	Result ValueRsc   `json:"result"`
+	Time   *time.Time `json:"time,omitempty"`
 }
 
 type ValueRsc struct {
@@ -62,6 +64,10 @@ type StringList struct {
 	Values []string `json:"values"`
 }
 
+type StringMatrix struct {
+	Values []StringList `json:"values"`
+}
+
 type ActionRsc struct {
 	Name    string    `json:"name"`
 	Timeout uint32    `json:"timeout"`
@@ -69,13 +75,11 @@ type ActionRsc struct {
 }
 
 type StageRsc struct {
-	Name   string     `json:"name"`
-	Action *ActionRsc `json:"action"`
-	Rows   struct {
-		Values []StringList `json:"values"`
-	} `json:"rows"`
-	Status *string `json:"status"`
-	Error  *string `json:"error"`
+	Name   string        `json:"name"`
+	Action *ActionRsc    `json:"action,omitempty"`
+	Rows   *StringMatrix `json:"rows,omitempty"`
+	Status *string       `json:"status,omitempty"`
+	Error  *string       `json:"error,omitempty"`
 }
 
 type ChangeRsc struct {
@@ -84,9 +88,9 @@ type ChangeRsc struct {
 	Stages      struct {
 		Values map[string]StageRsc `json:"values"`
 	} `json:"stages"`
-	Notes string    `json:"notes"`
-	User  string    `json:"user"`
-	Time  time.Time `json:"time"`
+	Notes *string    `json:"notes,omitempty"`
+	User  *string    `json:"user,omitempty"`
+	Time  *time.Time `json:"time,omitempty"`
 }
 
 type FlagRsc struct {
@@ -126,13 +130,13 @@ type ChangeControlRsc struct {
 
 // Resource APIs hand us back ndJson on /all endpoints.
 // This converts a call into a list of usable Json objects.
-func resultList(data []byte) ([]ResultRsc, error) {
-	out := []ResultRsc{}
+func resultList(data []byte) ([]resultRsc, error) {
+	out := []resultRsc{}
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
 
 	for decoder.More() {
-		el := ResultRsc{}
+		el := resultRsc{}
 
 		if err := decoder.Decode(&el); err != nil {
 			return nil, err
@@ -176,7 +180,7 @@ func (c CvpRestAPI) GetChangeControlsRsc() ([]ChangeControlRsc, error) {
 	return ccs, nil
 }
 
-// GetChangeControsRsc returns a single of `ChangeControlRsc` matching the given
+// GetChangeControlRsc returns a single `ChangeControlRsc` matching the given
 // `key` via the ChangeControl resource API available.
 //
 // This endpoint is available on CVP 2021.2.0 or newer.
@@ -206,6 +210,61 @@ func (c CvpRestAPI) GetChangeControlRsc(key string) (ChangeControlRsc, error) {
 	}
 
 	return cc, nil
+}
+
+// CreateChangeControlRsc creates a new `ChangeControlRsc` with the given uuid `key`,
+// `name`, and task list (in serial or parallel).
+//
+// This endpoint is available on CVP 2021.2.0 or newer.
+func (c CvpRestAPI) CreateChangeControlRsc(key, name string, tasks []string, sequential bool) error {
+	change := ChangeRsc{
+		Name:        name,
+		RootStageId: "root",
+	}
+	change.Stages.Values = make(map[string]StageRsc)
+
+	cfg := ChangeControlRsc{Change: &change}
+	cfg.Key.Id = key
+
+	rootStage := StageRsc{
+		Name: "root",
+	}
+
+	var rows []StringList
+
+	for i, task := range tasks {
+		localName := fmt.Sprintf("stage%d", i)
+		localAction := ActionRsc{Name: "task"}
+		localAction.Args.Values = make(map[string]string)
+		localAction.Args.Values["TaskID"] = task
+		localStage := StageRsc{
+			Name:   localName,
+			Action: &localAction,
+		}
+
+		change.Stages.Values[localName] = localStage
+
+		if sequential || i == 0 {
+			el := StringList{Values: []string{localName}}
+			rows = append(rows, el)
+			// change.Stages.Values["root"].Rows.Values
+		} else {
+			rows[0].Values = append(rows[0].Values, localName)
+		}
+	}
+
+	matrix := StringMatrix{Values: rows}
+	rootStage.Rows = &matrix
+
+	change.Stages.Values["root"] = rootStage
+
+	_, err := c.client.Post("/api/resources/changecontrol/v1/ChangeControlConfig", nil, cfg)
+
+	if err != nil {
+		err = errors.Errorf("CreateChangeControlRsc: %s", err)
+	}
+
+	return err
 }
 
 // ScheduleChangeControlRsc schedules the Change Control given by `key` to occur
