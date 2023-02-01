@@ -517,10 +517,8 @@ func (c *CvpClient) makeRequest(reqType string, url string, params *url.Values,
 		// client error
 		if status != http.StatusOK {
 			// retry another session
-
-			// FIXME: include body here?
-			// This is important for debugging resource APIs.
-			err = errors.Errorf("Status [%d]", status)
+			// Body is included as it is important for debugging resource APIs.
+			err = errors.Errorf("Status [%d], Body %s", status, string(resp.Body()))
 			continue
 		}
 		break
