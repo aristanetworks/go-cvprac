@@ -268,8 +268,43 @@ func (c CvpRestAPI) DeleteChangeControlRsc(ccId string) error {
 // CreateChangeControlRsc creates a new `ChangeControlRsc` with the given uuid `ccId`,
 // `name`, and task list (in serial or parallel).
 //
+// The user must ensure that any referenced tasks exist beforehand.
+//
 // This endpoint is available on CVP 2021.1.0 or newer.
-func (c CvpRestAPI) CreateChangeControlRsc(key, name string, tasks []string, sequential bool) (*ChangeControlRsc, error) {
+func (c CvpRestAPI) CreateChangeControlRsc(ccId, name string, tasks []string, sequential bool) (*ChangeControlRsc, error) {
+	var rootStages [][]StageRsc
+
+	for i, task := range tasks {
+		stageName := fmt.Sprintf("stage%d", i)
+		action := ActionRsc{Name: "task"}
+		action.Args.Values = make(map[string]string)
+		action.Args.Values["TaskID"] = task
+		stage := StageRsc{
+			Name:   stageName,
+			Action: &action,
+		}
+
+		if sequential || i == 0 {
+			el := []StageRsc{stage}
+			rootStages = append(rootStages, el)
+			// change.Stages.Values["root"].Rows.Values
+		} else {
+			rootStages[0] = append(rootStages[0], stage)
+		}
+	}
+
+	return c.CreateChangeControlWithActionsRsc(ccId, name, rootStages)
+}
+
+// CreateChangeControlWithActionsRsc creates a new `ChangeControlRsc` with the given uuid `ccId`,
+// `name`, executing the given `rootStages` attached to a new root node. `extraStages` can be optionally
+// included as needed.
+//
+// `rootStages` consists of rows of 'StageRsc's which are visited serially. Elements in each row are
+// run in parallel.
+//
+// This endpoint is available on CVP 2021.1.0 or newer.
+func (c CvpRestAPI) CreateChangeControlWithActionsRsc(ccId, name string, rootStages [][]StageRsc, extraStages ...StageRsc) (*ChangeControlRsc, error) {
 	root := "root"
 	stages := StageMap{Values: make(map[string]StageRsc)}
 	change := ChangeRsc{
@@ -279,7 +314,7 @@ func (c CvpRestAPI) CreateChangeControlRsc(key, name string, tasks []string, seq
 	}
 
 	cfg := ChangeControlRsc{Change: &change}
-	cfg.Key.Id = key
+	cfg.Key.Id = ccId
 
 	rootStage := StageRsc{
 		Name: "root",
@@ -287,25 +322,17 @@ func (c CvpRestAPI) CreateChangeControlRsc(key, name string, tasks []string, seq
 
 	var rows []StringList
 
-	for i, task := range tasks {
-		localName := fmt.Sprintf("stage%d", i)
-		localAction := ActionRsc{Name: "task"}
-		localAction.Args.Values = make(map[string]string)
-		localAction.Args.Values["TaskID"] = task
-		localStage := StageRsc{
-			Name:   localName,
-			Action: &localAction,
+	for _, parallelStages := range rootStages {
+		var rowToAdd []string
+		for _, stage := range parallelStages {
+			rowToAdd = append(rowToAdd, stage.Name)
+			change.Stages.Values[stage.Name] = stage
 		}
+		rows = append(rows, StringList{Values: rowToAdd})
+	}
 
-		change.Stages.Values[localName] = localStage
-
-		if sequential || i == 0 {
-			el := StringList{Values: []string{localName}}
-			rows = append(rows, el)
-			// change.Stages.Values["root"].Rows.Values
-		} else {
-			rows[0].Values = append(rows[0].Values, localName)
-		}
+	for _, stage := range extraStages {
+		change.Stages.Values[stage.Name] = stage
 	}
 
 	matrix := StringMatrix{Values: rows}
