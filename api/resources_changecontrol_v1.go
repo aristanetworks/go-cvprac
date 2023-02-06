@@ -410,12 +410,6 @@ func (c CvpRestAPI) ScheduleChangeControlRsc(ccId string, schedTime time.Time, n
 		err = errors.Errorf("ScheduleChangeControlRsc: %s", err)
 	}
 
-	// FIXME: check error handling of the top-level struct received.
-	// Scheduling unapproved jobs seems to have no issue, scheduling unapproved
-	// causes the change control to become unapproved again, counter to what docs say...
-	//
-	// Error string can appear at several levels in the hierarchy
-
 	return err
 }
 
