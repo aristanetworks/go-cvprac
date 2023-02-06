@@ -126,7 +126,7 @@ func (v *resourceGetError) GetError() error {
 	if v.Code != nil {
 		err := errors.Errorf("resource API lookup failed [code %d]", v.Code)
 		if v.Message != nil {
-			err = errors.Errorf("%s: %s", v.Message)
+			err = errors.Errorf("%s: %s", err, *v.Message)
 		}
 		return err
 	}
@@ -150,6 +150,10 @@ func resultList(data []byte) ([]resultRsc, error) {
 
 		if err := el.GetError(); err != nil {
 			return nil, err
+		}
+
+		if el.Result == nil {
+			return nil, errors.Errorf("missing 'Value' field from ndJson response")
 		}
 
 		out = append(out, el)
