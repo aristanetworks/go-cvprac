@@ -144,7 +144,8 @@ func Test_checkConfigMapping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, configletAndBuilders, err := checkConfigMapping(tt.args.applied, tt.args.newconfiglets)
+			got, configletAndBuilders, err := checkConfigMapping(tt.args.applied,
+				tt.args.newconfiglets)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("checkConfigMapping() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -246,11 +247,13 @@ func Test_checkRemoveConfigMapping(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(configletAndBuilders, tt.want1) {
-				t.Errorf("checkRemoveConfigMapping() configletAndBuilders = %v, want %v", configletAndBuilders, tt.want1)
+				t.Errorf("checkRemoveConfigMapping() configletAndBuilders = %v, want %v",
+					configletAndBuilders, tt.want1)
 			}
 
 			if !reflect.DeepEqual(rmConfigletAndBuilders, tt.want2) {
-				t.Errorf("checkRemoveConfigMapping() rmConfigletAndBuilders = %v, want %v", rmConfigletAndBuilders, tt.want2)
+				t.Errorf("checkRemoveConfigMapping() rmConfigletAndBuilders = %v, want %v",
+					rmConfigletAndBuilders, tt.want2)
 			}
 		})
 	}

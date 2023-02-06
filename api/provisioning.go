@@ -660,7 +660,8 @@ func (c CvpRestAPI) ValidateAndApplyConfigletsToDevice(appName string, dev *NetE
 	}
 
 	// Run Validation of new configlets to be applied
-	validateResp, err := c.ValidateConfigletsForDevice(dev.SystemMacAddress, configletAndBuilders.keys)
+	validateResp, err := c.ValidateConfigletsForDevice(dev.SystemMacAddress,
+		configletAndBuilders.keys)
 	if err != nil {
 		return nil, errors.Errorf("ApplyConfigletsToDevice: %s", err)
 	}

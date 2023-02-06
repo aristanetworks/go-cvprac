@@ -114,6 +114,7 @@ func LoadConfigFile(file string) (Config, error) {
 
 // assert fails the test if the condition is false.
 func assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
+	tb.Helper()
 	if !condition {
 		_, file, line, _ := runtime.Caller(1)
 		tb.Fatalf("\033[31m%s:%d: "+msg+"\033[39m\n\n",
@@ -123,6 +124,7 @@ func assert(tb testing.TB, condition bool, msg string, v ...interface{}) {
 
 // ok fails the test if an err is not nil.
 func ok(tb testing.TB, err error) {
+	tb.Helper()
 	if err != nil {
 		_, file, line, _ := runtime.Caller(1)
 		tb.Fatalf("\033[31m%s:%d: unexpected error: %s\033[39m\n\n",
@@ -132,6 +134,7 @@ func ok(tb testing.TB, err error) {
 
 // equals fails the test if exp is not equal to act.
 func equals(tb testing.TB, exp, act interface{}) {
+	tb.Helper()
 	if !reflect.DeepEqual(exp, act) {
 		_, file, line, _ := runtime.Caller(1)
 		tb.Fatalf("\033[31m%s:%d:\n\n\texp: %#v\n\n\tgot: %#v\033[39m\n\n",
