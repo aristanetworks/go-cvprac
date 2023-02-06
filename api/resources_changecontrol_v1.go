@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2016-2017, Arista Networks, Inc. All rights reserved.
+// Copyright (c) 2016-2023, Arista Networks, Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are
@@ -32,7 +32,6 @@
 package cvpapi
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -41,131 +40,104 @@ import (
 	"github.com/pkg/errors"
 )
 
-// FIXME: document structs and factor out common properties.
-// FIXME: break out shared utilities (resultRsc) to "resources.go"?
-
-type resultRsc struct {
-	Result ValueRsc   `json:"result"`
-	Time   *time.Time `json:"time,omitempty"`
-}
-
-type ValueRsc struct {
-	Value json.RawMessage `json:"value"`
-	Time  time.Time       `json:"time"`
-	Type  string          `json:"type"`
-}
-
+// Key type for identifying individual change controls.
 type ChangeControlKeyRsc struct {
 	Id string `json:"id"`
 }
 
-type StringMap struct {
-	Values map[string]string `json:"values"`
-}
-
+// Wrapper type for a collection of named stages in the change
+// control Resource API.
 type StageMap struct {
 	Values map[string]StageRsc `json:"values"`
 }
 
-type StringList struct {
-	Values []string `json:"values"`
-}
-
-type StringMatrix struct {
-	Values []StringList `json:"values"`
-}
-
+// An individual action within a change control.
 type ActionRsc struct {
-	Name    string    `json:"name"`
-	Timeout uint32    `json:"timeout"`
-	Args    StringMap `json:"args"`
+	// The name of the action to execute.
+	//
+	// Refer to CVP documentation for valid choices and their
+	// corresponding arguments.
+	Name string `json:"name"`
+	// Timeout of this action in seconds.
+	Timeout uint32 `json:"timeout"`
+	// Key-value pairs of strings used as arguments for
+	// this action.
+	Args StringMap `json:"args"`
 }
 
+// A stage within a change control.
 type StageRsc struct {
-	Name   string        `json:"name"`
-	Action *ActionRsc    `json:"action,omitempty"`
-	Rows   *StringMatrix `json:"rows,omitempty"`
-	Status *string       `json:"status,omitempty"`
-	Error  *string       `json:"error,omitempty"`
+	// The name of this stage.
+	//
+	// This is used when this stage is referred to by either the
+	// root stage ID, or as a row within another stage.
+	Name string `json:"name"`
+	// The action attached to this stage,
+	Action *ActionRsc `json:"action,omitempty"`
+	// A matrix containing the names of other sub-stages to execute.
+	//
+	// Entries in each row are executed in parallel, while
+	// rows are run serially.
+	Rows *StringMatrix `json:"rows,omitempty"`
+	// Execution state of this stage, filled in once a stage has
+	// begun (e.g., `STAGE_STATUS_{UNSPECIIFED,RUNNING,COMPLETED}`).
+	Status *string `json:"status,omitempty"`
+
+	ResourceError
 }
 
+// The main body of a change control.
 type ChangeRsc struct {
-	Name        *string    `json:"name,omitempty"`
-	RootStageId *string    `json:"rootStageId,omitempty"`
-	Stages      *StageMap  `json:"stages,omitempty"`
-	Notes       *string    `json:"notes,omitempty"`
-	User        *string    `json:"user,omitempty"`
-	Time        *time.Time `json:"time,omitempty"`
+	// The user-friendly name of this change.
+	Name *string `json:"name,omitempty"`
+	// The name of the root stage to be executed. This should match
+	// an entry in `Stages`.
+	RootStageId *string `json:"rootStageId,omitempty"`
+	// All stages associated with this change.
+	Stages *StageMap `json:"stages,omitempty"`
+
+	ModifiedBy
 }
 
-type FlagRsc struct {
-	Value bool       `json:"value"`
-	Notes string     `json:"notes"`
-	Time  *time.Time `json:"time,omitempty"`
-	User  string     `json:"user,omitempty"`
-}
-
-type FlagConfigRsc struct {
-	Value bool   `json:"value"`
-	Notes string `json:"notes"`
-}
-
-type TimestampFlagRsc struct {
-	Value *time.Time `json:"value,omitempty"`
-	Notes string     `json:"notes"`
-	Time  *time.Time `json:"time,omitempty"`
-	User  *string    `json:"user,omitempty"`
-}
-
-type TimestampFlagConfigRsc struct {
-	Value bool   `json:"value"`
-	Notes string `json:"notes"`
-}
-
+// A change control paired with any scheduling information.
 type ChangeControlRsc struct {
-	Key      ChangeControlKeyRsc `json:"key"`
-	Change   *ChangeRsc          `json:"change,omitempty"`
-	Flag     *FlagRsc            `json:"flag,omitempty"`
-	Start    *FlagRsc            `json:"start,omitempty"`
-	Status   *string             `json:"status,omitempty"`
-	Schedule *TimestampFlagRsc   `json:"schedule,omitempty"`
+	// A unique key or UUID identifying this change control.
+	Key ChangeControlKeyRsc `json:"key"`
+	// The main body and actions of this change.
+	Change *ChangeRsc `json:"change,omitempty"`
+	// Flag which starts or stops the execution of this change control.
+	Start *FlagRsc `json:"start,omitempty"`
+	// An optional time at which that this change control will automatically
+	// execute if it has been approved.
+	Schedule *TimestampFlagRsc `json:"schedule,omitempty"`
 
-	Error *string `json:"error,omitempty"`
+	ResourceError
 }
 
+// Approval state for a change control.
 type ApproveConfigRsc struct {
-	Key     ChangeControlKeyRsc `json:"key"`
-	Approve FlagConfigRsc       `json:"approve"`
-	Version *time.Time          `json:"version,omitempty"`
-}
-
-// Resource APIs hand us back ndJson on /all endpoints.
-// This converts a call into a list of usable Json objects.
-func resultList(data []byte) ([]resultRsc, error) {
-	out := []resultRsc{}
-
-	decoder := json.NewDecoder(bytes.NewReader(data))
-
-	for decoder.More() {
-		el := resultRsc{}
-
-		if err := decoder.Decode(&el); err != nil {
-			return nil, err
-		}
-
-		out = append(out, el)
-	}
-
-	return out, nil
+	// The unique key or UUID identifying the target change control.
+	Key ChangeControlKeyRsc `json:"key"`
+	// Approval state and metadata.
+	Approve FlagRsc `json:"approve"`
+	// The timestamp matching the last update time of the target change control.
+	//
+	// If `Version` does not match the change control, then this approval will
+	// fail or be cancelled.
+	Version *time.Time `json:"version,omitempty"`
 }
 
 func deserChangeControl(data []byte) (*ChangeControlRsc, error) {
-	result := ValueRsc{}
+	result := valueRsc{}
 	cc := ChangeControlRsc{}
 
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, errors.Errorf("ChangeControlRsc [Result]: %s Payload:\n%s",
 			err, data)
+	}
+
+	if err := result.GetError(); err != nil {
+		return nil, errors.Errorf("ChangeControlRsc [API]: %s", err)
 	}
 
 	if err := json.Unmarshal(result.Value, &cc); err != nil {
@@ -177,12 +149,16 @@ func deserChangeControl(data []byte) (*ChangeControlRsc, error) {
 }
 
 func deserApproval(data []byte) (*ApproveConfigRsc, error) {
-	result := ValueRsc{}
+	result := valueRsc{}
 	cc := ApproveConfigRsc{}
 
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, errors.Errorf("ApproveConfigRsc [Result]: %s Payload:\n%s",
 			err, data)
+	}
+
+	if err := result.GetError(); err != nil {
+		return nil, errors.Errorf("ApproveConfigRsc [API]: %s", err)
 	}
 
 	if err := json.Unmarshal(result.Value, &cc); err != nil {
@@ -355,9 +331,8 @@ func (c CvpRestAPI) CreateChangeControlWithActionsRsc(ccId, name string, rootSta
 //
 // This endpoint is available on CVP 2021.2.0 or newer.
 func (c CvpRestAPI) AddNoteToChangeControlRsc(ccId, notes string) error {
-	change := ChangeRsc{
-		Notes: &notes,
-	}
+	change := ChangeRsc{}
+	change.Notes = &notes
 
 	cfg := ChangeControlRsc{Change: &change}
 	cfg.Key.Id = ccId
@@ -380,10 +355,8 @@ func (c CvpRestAPI) AddNoteToChangeControlRsc(ccId, notes string) error {
 //
 // This endpoint is available on CVP 2021.2.0 or newer.
 func (c CvpRestAPI) StartChangeControlRsc(ccId, notes string) error {
-	start := FlagRsc{
-		Notes: notes,
-		Value: true,
-	}
+	start := FlagRsc{Value: true}
+	start.Notes = &notes
 
 	cfg := ChangeControlRsc{Start: &start}
 	cfg.Key.Id = ccId
@@ -402,10 +375,8 @@ func (c CvpRestAPI) StartChangeControlRsc(ccId, notes string) error {
 //
 // This endpoint is available on CVP 2021.2.0 or newer.
 func (c CvpRestAPI) StopChangeControlRsc(ccId, notes string) error {
-	start := FlagRsc{
-		Notes: notes,
-		Value: false,
-	}
+	start := FlagRsc{Value: false}
+	start.Notes = &notes
 
 	cfg := ChangeControlRsc{Start: &start}
 	cfg.Key.Id = ccId
@@ -428,9 +399,8 @@ func (c CvpRestAPI) ScheduleChangeControlRsc(ccId string, schedTime time.Time, n
 	cfg.Key.Id = ccId
 
 	// Note: The API seems to disallow setting the user or time on cvprac v2022.1.0 -- not tested others.
-	sched := TimestampFlagRsc{}
-	sched.Value = &schedTime
-	sched.Notes = notes
+	sched := TimestampFlagRsc{Value: &schedTime}
+	sched.Notes = &notes
 
 	cfg.Schedule = &sched
 
@@ -458,7 +428,7 @@ func (c CvpRestAPI) DescheduleChangeControlRsc(ccId, notes string) error {
 
 	// Note: The API seems to disallow setting the user or time on cvprac v2022.1.0 -- not tested others.
 	sched := TimestampFlagRsc{}
-	sched.Notes = notes
+	sched.Notes = &notes
 
 	cfg.Schedule = &sched
 
@@ -532,10 +502,9 @@ func (c CvpRestAPI) GetChangeControlApprovalRsc(ccId string) (*ApproveConfigRsc,
 // This endpoint is available on CVP 2021.2.0 or newer.
 // explain version.
 func (c CvpRestAPI) ApproveChangeControlRsc(ccId string, approve bool, version time.Time, notes string) error {
-	flag := FlagConfigRsc{
-		Value: approve,
-		Notes: notes,
-	}
+	flag := FlagRsc{Value: approve}
+	flag.Notes = &notes
+
 	approval := ApproveConfigRsc{
 		Approve: flag,
 		Version: &version,
