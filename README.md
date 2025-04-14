@@ -188,7 +188,7 @@ Covenant](http://contributor-covenant.org) code of conduct.
 
 For support, please open an
 [issue](https://github.com/aristanetworks/go-cvprac) on GitHub or
-contact eosplus@arista.com.  Commercial support agreements are available
+contact eosplus-dev@arista.com.  Commercial support agreements are available
 through your Arista account team.
 
 ## License
